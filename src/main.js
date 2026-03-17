@@ -1,5 +1,8 @@
 import './styles/variables.css';
 import './styles/base.css';
+import { renderLanding } from './pages/landing.js';
+import { renderScoring } from './pages/scoring.js';
+import { renderGeneration } from './pages/generation.js';
 
 const app = document.getElementById('app');
 
@@ -8,9 +11,11 @@ function router() {
   app.innerHTML = ''; // Basic clear
 
   if (hash === '' || hash === '#/') {
-    app.innerHTML = '<h1>问名 - Landing</h1>';
+    renderLanding(app);
   } else if (hash === '#/score') {
-    app.innerHTML = '<h1>问名 - Scoring</h1>';
+    renderScoring(app);
+  } else if (hash === '#/generate') {
+    renderGeneration(app);
   } else {
     // 404 fallback to landing
     window.location.hash = '#/';

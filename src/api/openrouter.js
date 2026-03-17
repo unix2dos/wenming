@@ -69,7 +69,7 @@ async function fetchOpenRouterAPI(systemPrompt, userPrompt) {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "google/gemini-3-flash-preview",
         temperature: 0,
         messages: [
           { role: "system", content: systemPrompt },
@@ -78,7 +78,7 @@ async function fetchOpenRouterAPI(systemPrompt, userPrompt) {
         response_format: { type: "json_object" }
       })
     });
-    
+
     if (!response.ok) {
       const err = await response.text();
       console.error("API Error:", err);
@@ -87,7 +87,7 @@ async function fetchOpenRouterAPI(systemPrompt, userPrompt) {
 
     const data = await response.json();
     let content = data.choices[0].message.content;
-    
+
     if (content.startsWith('\`\`\`json')) {
       content = content.replace(/^\`\`\`json\n/, '').replace(/\n\`\`\`$/, '');
     } else if (content.startsWith('\`\`\`')) {

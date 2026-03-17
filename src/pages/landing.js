@@ -9,9 +9,9 @@ export function renderLanding(container) {
       </div>
       
       <div class="entry-cards">
-        <a href="javascript:void(0)" onclick="alert('给宝宝取名 - 功能即将上线')" class="entry-card" style="opacity: 0.7;">
+        <a href="#/generate" class="entry-card">
           <h3>给宝宝取名</h3>
-          <p>输入姓氏偏好，推敲 8 个好名字（开发中）</p>
+          <p>输入姓氏偏好，推敲 8 个具有新文人特质的名字</p>
         </a>
         <a href="#/score" class="entry-card">
           <h3>看看名字好不好</h3>

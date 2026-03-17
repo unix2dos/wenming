@@ -1,0 +1,224 @@
+.generation-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: var(--spacing-4xl) var(--spacing-lg);
+  min-height: 100vh;
+}
+
+.form-section h2 {
+  font-size: 2rem;
+  margin-bottom: var(--spacing-xl);
+  color: var(--color-dai);
+  text-align: center;
+}
+
+.gen-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xl);
+  background: var(--color-jingbai);
+  padding: var(--spacing-3xl);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.form-group label {
+  font-weight: 500;
+  color: var(--color-dai);
+  font-size: 1.05rem;
+}
+
+.form-group label span.optional {
+  color: var(--color-yanhui);
+  font-weight: 400;
+  font-size: 0.9rem;
+  margin-left: var(--spacing-xs);
+}
+
+.radio-group {
+  display: flex;
+  gap: var(--spacing-lg);
+}
+
+.radio-group label {
+  font-weight: normal;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+}
+
+.style-cards {
+  display: flex;
+  gap: var(--spacing-md);
+  flex-wrap: wrap;
+}
+
+.style-card {
+  flex: 1;
+  min-width: 150px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: center;
+}
+
+.style-card.selected {
+  border-color: var(--color-ouhe);
+  background-color: rgba(196, 168, 130, 0.05); /* very light ouhe */
+  box-shadow: var(--shadow-sm);
+}
+
+.style-card h4 {
+  margin-bottom: var(--spacing-xs);
+  color: var(--color-dai);
+}
+
+.style-card p {
+  font-size: 0.85rem;
+  color: var(--color-yanhui);
+}
+
+.textarea-underline {
+  border: none;
+  border-bottom: 2px solid var(--color-border);
+  background: transparent;
+  padding: var(--spacing-sm) var(--spacing-xs);
+  font-size: 1.05rem;
+  font-family: var(--font-body);
+  color: var(--color-dai);
+  width: 100%;
+  resize: vertical;
+  min-height: 40px;
+  transition: border-color var(--transition-fast);
+  outline: none;
+}
+.textarea-underline:focus {
+  border-bottom-color: var(--color-ouhe);
+}
+.textarea-underline::placeholder {
+  color: var(--color-yanhui);
+  font-weight: 300;
+}
+
+.gen-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--spacing-lg);
+}
+
+/* Results State */
+.results-section {
+  animation: fadeIn var(--transition-normal);
+}
+
+.results-header {
+  text-align: center;
+  margin-bottom: var(--spacing-2xl);
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-xl);
+}
+
+.name-card {
+  background: var(--color-jingbai);
+  padding: var(--spacing-2xl);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  border: 1px solid transparent;
+  text-align: center;
+}
+
+.name-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-border);
+}
+
+.name-card-title {
+  font-size: 2.5rem;
+  font-family: var(--font-title);
+  color: var(--color-dai);
+  margin-bottom: var(--spacing-md);
+}
+
+.name-card-meta {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+}
+
+.name-card-score {
+  font-weight: bold;
+  color: var(--color-ouhe);
+  font-size: 1.2rem;
+}
+
+.name-card-desc {
+  color: var(--color-yanhui);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  font-style: italic;
+}
+
+/* Detail overlay mock container (using scoring visually) */
+.detail-modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(247, 243, 238, 0.95); /* yuebai */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: var(--spacing-xl);
+  overflow-y: auto;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-normal);
+}
+
+.detail-modal.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.detail-content {
+  background: var(--color-jingbai);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: var(--spacing-3xl) var(--spacing-xl);
+  max-width: 500px;
+  width: 100%;
+  position: relative;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-close {
+  position: absolute;
+  top: var(--spacing-lg);
+  right: var(--spacing-lg);
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: var(--color-yanhui);
+  cursor: pointer;
+}
+.modal-close:hover {
+  color: var(--color-dai);
+}
