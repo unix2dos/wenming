@@ -26,42 +26,20 @@ export function renderLanding(container) {
     <div class="landing-page">
       <section class="hero">
         <div class="hero-copy">
-          <p class="hero-kicker">问名 · 去玄学化的中文起名工具</p>
-          <h1 class="title">不算命，不堆典，给宝宝一个经得住时间的名字。</h1>
+          <p class="hero-kicker">问名</p>
+          <h1 class="title">不靠玄学，给宝宝起一个经得住时间的名字。</h1>
           <p class="hero-summary">
-            用常用字做高级组合，按「大雅 / 大俗」两条审美路线，帮你从好听、好写、耐看、实用四个层面做判断。
+            用常用字做审美判断，不堆典、不生僻，帮你从气质、音韵、字形和实用性里挑出真正值得留下的名字。
           </p>
           <div class="value-pills">
             <span>不用生僻字</span>
-            <span>不走玄学</span>
+            <span>不走八字玄学</span>
             <span>重审美判断</span>
           </div>
-        </div>
-        <div class="hero-proof">
-          <div class="proof-card">
-            <div class="proof-eyebrow">你最终会得到什么</div>
-            <ul class="proof-list">
-              <li>一次生成 8 个候选名</li>
-              <li>每个名字都有路线、分数与保留理由</li>
-              <li>可收藏、横向对比、导出卷宗给家人讨论</li>
-            </ul>
+          <div class="hero-actions">
+            <a href="#/generate" class="btn hero-btn hero-btn-primary">给宝宝取名</a>
+            <a href="#/score" class="btn hero-btn hero-btn-secondary">看看名字好不好</a>
           </div>
-        </div>
-      </section>
-
-      <section class="entry-section">
-        <p class="slogan">不是算八字，而是帮你做名字审美判断。</p>
-        <div class="entry-cards">
-          <a href="#/generate" class="entry-card entry-card-primary">
-            <div class="entry-card-tag">主入口</div>
-            <h3>给宝宝取名</h3>
-            <p>先用姓氏快速试一轮，再按气质、避讳字和偏好细调候选名。</p>
-          </a>
-          <a href="#/score" class="entry-card">
-            <div class="entry-card-tag">辅助入口</div>
-            <h3>看看名字好不好</h3>
-            <p>输入已有名字，拿到五维打分、路线判断和是否值得保留的结论。</p>
-          </a>
         </div>
       </section>
 
@@ -84,19 +62,8 @@ export function renderLanding(container) {
         </div>
       </section>
 
-      <section class="support-section">
-        <div class="support-item">
-          <strong>生成</strong>
-          <span>先看 8 个名字的整体气质和取舍空间。</span>
-        </div>
-        <div class="support-item">
-          <strong>收藏对比</strong>
-          <span>把心动候选名收进藏书阁，横向比较再做决定。</span>
-        </div>
-        <div class="support-item">
-          <strong>导出讨论</strong>
-          <span>把结果整理成卷宗，直接发给家人讨论。</span>
-        </div>
+      <section class="support-bar">
+        <p>可收藏候选名，可横向对比，也可导出结果给家人一起讨论。</p>
       </section>
 
       <div class="footer-names" aria-hidden="true">
