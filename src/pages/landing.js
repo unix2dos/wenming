@@ -6,19 +6,19 @@ export function renderLanding(container) {
       name: '林见山',
       routeClass: 'da-ya',
       routeLabel: '大雅',
-      note: '留白很大，安静但不软弱，适合气质清朗的家庭。'
+      note: '留白很大，安静却不单薄，适合气质清朗的家庭。'
     },
     {
       name: '林春生',
       routeClass: 'da-su',
       routeLabel: '大俗',
-      note: '有泥土感和生命力，不网红，但很耐看。'
+      note: '有泥土感和生命力，不追潮流，却很耐看。'
     },
     {
       name: '林半亩',
       routeClass: 'da-ya',
-      routeLabel: '打分样例',
-      note: '输入已有名字，也能得到五维判断、收藏、对比与导出。'
+      routeLabel: '名字打分样例',
+      note: '输入已有名字，也能得到五维判断与保留建议。'
     }
   ];
 
@@ -29,7 +29,7 @@ export function renderLanding(container) {
           <p class="hero-kicker">问名</p>
           <h1 class="title">不靠玄学，给宝宝起一个经得住时间的名字。</h1>
           <p class="hero-summary">
-            用常用字做审美判断，不堆典、不生僻，帮你从气质、音韵、字形和实用性里挑出真正值得留下的名字。
+            从常用字里做审美判断，不生僻，不造作，帮你挑出真正值得留下的名字。
           </p>
           <div class="value-pills">
             <span>不用生僻字</span>
@@ -63,7 +63,7 @@ export function renderLanding(container) {
       </section>
 
       <section class="support-bar">
-        <p>可收藏候选名，可横向对比，也可导出结果给家人一起讨论。</p>
+        <p>可收藏候选名，可慢慢比较，也可带去和家人一起讨论。</p>
       </section>
 
       <div class="footer-names" aria-hidden="true">
