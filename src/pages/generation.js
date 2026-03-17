@@ -2,6 +2,8 @@ import '../styles/generation.css';
 import { generateNames } from '../api/openrouter.js';
 import { renderLoading } from '../components/loading.js';
 import { renderRadarChart } from '../components/radar-chart.js';
+import { saveName, removeName, isNameSaved } from '../utils/storage.js';
+import { exportElementAsPDF } from '../utils/export.js';
 
 export function renderGeneration(container) {
   let state = {
@@ -16,8 +18,9 @@ export function renderGeneration(container) {
     if (state.step === 'input') {
       container.innerHTML = `
         <div class="generation-page">
-          <div class="header-back">
+          <div class="header-back" style="display:flex; justify-content:space-between;">
             <a href="#/">&larr; 返回首页</a>
+            <a href="#/collection">📚 我的藏书阁</a>
           </div>
           <div class="form-section">
             <h2>为宝宝求个好名</h2>
@@ -144,6 +147,7 @@ export function renderGeneration(container) {
         <div class="generation-page">
           <div class="header-back" style="display:flex; justify-content:space-between;">
             <a href="javascript:void(0)" id="re-gen-btn">&larr; 换一批 / 重新起名</a>
+            <a href="#/collection">📚 我的藏书阁</a>
           </div>
           
           <div class="results-section">
@@ -200,21 +204,34 @@ export function renderGeneration(container) {
     const content = document.getElementById('detail-content');
     const routeClass = nameData.route === '大雅' ? 'da-ya' : 'da-su';
     
+    const isSaved = isNameSaved(nameData.full_name);
+    
     // We reuse the scoring UI visually in the modal
     content.innerHTML = `
-      <button class="modal-close" id="modal-close">&times;</button>
-      <div style="text-align:center; margin-bottom: 24px;">
-        <div class="result-name" style="font-size: 2.5rem; margin-bottom:8px;">${nameData.full_name}</div>
-        <div class="result-meta">
-          <div class="total-score" style="font-size: 1.5rem;">${nameData.score}<span> / 100</span></div>
-          <span class="pill ${routeClass}">${nameData.route}</span>
+      <button class="modal-close no-export" id="modal-close">&times;</button>
+      <div id="modal-export-area">
+        <div style="text-align:center; margin-bottom: 24px;">
+          <div class="result-name" style="font-size: 2.5rem; margin-bottom:8px;">${nameData.full_name}</div>
+          <div class="result-meta">
+            <div class="total-score" style="font-size: 1.5rem;">${nameData.score}<span> / 100</span></div>
+            <span class="pill ${routeClass}">${nameData.route}</span>
+          </div>
+          <div class="overall-comment" style="font-size:1rem; margin-top:16px;">"${nameData.one_liner}"</div>
         </div>
-        <div class="overall-comment" style="font-size:1rem; margin-top:16px;">"${nameData.one_liner}"</div>
+        <div class="radar-container" style="margin: 24px 0;">
+          <canvas id="modal-radar-canvas" style="width: 250px; height: 250px; margin: 0 auto; display:block;"></canvas>
+        </div>
+        <div style="text-align:center; color:#A0AEC0; font-size:0.85rem;">生成简报中未包含详细单项解析，仅供快速概览雷达分布。若需深究，可前往「看看名字好不好」。</div>
       </div>
-      <div class="radar-container" style="margin: 24px 0;">
-        <canvas id="modal-radar-canvas" style="width: 250px; height: 250px; margin: 0 auto; display:block;"></canvas>
+      
+      <div class="modal-actions no-export" style="display:flex; justify-content:center; gap:16px; margin-top:32px;">
+        <button id="modal-save-btn" class="btn" style="background-color: ${isSaved ? '#A0AEC0' : 'var(--color-ouhe)'};">
+          ${isSaved ? '已在藏书阁' : '收进藏书阁'}
+        </button>
+        <button id="modal-export-btn" class="btn" style="background-color: var(--color-zhuqing);">
+          导出为解读卷宗
+        </button>
       </div>
-      <div style="text-align:center; color:#A0AEC0; font-size:0.85rem;">生成简报中未包含详细单项解析，仅供快速概览雷达分布。若需深究，可前往「看看名字好不好」。</div>
     `;
     
     modal.classList.add('active');
@@ -223,6 +240,7 @@ export function renderGeneration(container) {
       renderRadarChart('modal-radar-canvas', nameData.dimensions);
     }, 50);
 
+    // Binds
     document.getElementById('modal-close').addEventListener('click', () => {
       modal.classList.remove('active');
     });
@@ -230,6 +248,33 @@ export function renderGeneration(container) {
     modal.addEventListener('click', (e) => {
       if (e.target === modal) modal.classList.remove('active');
     });
+
+    const saveBtn = document.getElementById('modal-save-btn');
+    saveBtn.addEventListener('click', () => {
+      if (isNameSaved(nameData.full_name)) {
+        removeName(nameData.full_name);
+        saveBtn.textContent = '收进藏书阁';
+        saveBtn.style.backgroundColor = 'var(--color-ouhe)';
+      } else {
+        saveName(nameData);
+        saveBtn.textContent = '已在藏书阁';
+        saveBtn.style.backgroundColor = '#A0AEC0';
+      }
+    });
+
+    const exportBtn = document.getElementById('modal-export-btn');
+    exportBtn.addEventListener('click', async () => {
+      exportBtn.textContent = '生成中...';
+      exportBtn.disabled = true;
+      try {
+        await exportElementAsPDF('detail-content', `${nameData.full_name}_新文人起名简报.pdf`);
+      } catch (e) {
+        alert("导出失败");
+      }
+      exportBtn.textContent = '导出为解读卷宗';
+      exportBtn.disabled = false;
+    });
+
   }
 
   render();

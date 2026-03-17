@@ -3,6 +3,7 @@ import './styles/base.css';
 import { renderLanding } from './pages/landing.js';
 import { renderScoring } from './pages/scoring.js';
 import { renderGeneration } from './pages/generation.js';
+import { renderCollection } from './pages/collection.js';
 
 const app = document.getElementById('app');
 
@@ -16,6 +17,8 @@ function router() {
     renderScoring(app);
   } else if (hash === '#/generate') {
     renderGeneration(app);
+  } else if (hash === '#/collection') {
+    renderCollection(app);
   } else {
     // 404 fallback to landing
     window.location.hash = '#/';

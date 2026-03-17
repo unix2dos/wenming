@@ -2,6 +2,8 @@ import '../styles/scoring.css';
 import { scoreName } from '../api/openrouter.js';
 import { renderLoading } from '../components/loading.js';
 import { renderRadarChart } from '../components/radar-chart.js';
+import { saveName, removeName, isNameSaved } from '../utils/storage.js';
+import { exportElementAsPDF } from '../utils/export.js';
 
 export function renderScoring(container) {
   let state = {
@@ -14,8 +16,9 @@ export function renderScoring(container) {
     if (state.step === 'input') {
       container.innerHTML = `
         <div class="scoring-page">
-          <div class="header-back">
+          <div class="header-back" style="display:flex; justify-content:space-between;">
             <a href="#/">&larr; 返回首页</a>
+            <a href="#/collection">📚 我的藏书阁</a>
           </div>
           <div class="input-section">
             <h2>看看名字好不好</h2>
@@ -39,7 +42,7 @@ export function renderScoring(container) {
 
         try {
           const result = await scoreName(name);
-          state.data = { name, ...result };
+          state.data = { full_name: name, ...result }; // ensure full_name key matches storage logic
           state.step = 'result';
         } catch (err) {
           state.error = "打分失败，请稍后重试或检查配置。";
@@ -65,35 +68,50 @@ export function renderScoring(container) {
     } else if (state.step === 'result') {
       const d = state.data;
       const routeClass = d.route === '大雅' ? 'da-ya' : 'da-su';
+      const isSaved = isNameSaved(d.full_name);
       
       container.innerHTML = `
         <div class="scoring-page">
-          <div class="header-back">
+          <div class="header-back" style="display:flex; justify-content:space-between;">
             <a href="javascript:void(0)" id="re-score-btn">&larr; 测下一个名字</a>
+            <a href="#/collection">📚 我的藏书阁</a>
           </div>
           
-          <div class="result-card">
-            <div class="result-header">
-              <div class="result-name">${d.name}</div>
-              <div class="result-meta">
-                <div class="total-score">${d.total_score}<span> / 100</span></div>
-                <span class="pill ${routeClass}">${d.route}</span>
+          <div class="result-card" id="scoring-result-card">
+            <div id="scoring-export-area">
+              <div class="result-header">
+                <div class="result-name">${d.full_name}</div>
+                <div class="result-meta">
+                  <div class="total-score">${d.total_score}<span> / 100</span></div>
+                  <span class="pill ${routeClass}">${d.route}</span>
+                </div>
+                <div class="route-reason">${d.route_reason}</div>
+                <div class="overall-comment">"${d.overall_comment}"</div>
               </div>
-              <div class="route-reason">${d.route_reason}</div>
-              <div class="overall-comment">"${d.overall_comment}"</div>
+
+              <div class="radar-container">
+                <canvas id="radar-canvas" style="width: 300px; height: 300px;"></canvas>
+              </div>
+
+              <div class="dimensions-list">
+                ${renderDimItem('音韵', d.dimensions.sound)}
+                ${renderDimItem('字形', d.dimensions.shape)}
+                ${renderDimItem('意境', d.dimensions.style)}
+                ${renderDimItem('风骨', d.dimensions.classic)}
+                ${renderDimItem('实用', d.dimensions.practical)}
+              </div>
             </div>
 
-            <div class="radar-container">
-              <canvas id="radar-canvas" style="width: 300px; height: 300px;"></canvas>
+            <!-- Actions -->
+            <div class="modal-actions no-export" style="display:flex; justify-content:center; gap:16px; margin-top:48px;">
+              <button id="score-save-btn" class="btn" style="background-color: ${isSaved ? '#A0AEC0' : 'var(--color-ouhe)'};">
+                ${isSaved ? '已在藏书阁' : '收进藏书阁'}
+              </button>
+              <button id="score-export-btn" class="btn" style="background-color: var(--color-zhuqing);">
+                导出解读报告
+              </button>
             </div>
 
-            <div class="dimensions-list">
-              ${renderDimItem('音韵', d.dimensions.sound)}
-              ${renderDimItem('字形', d.dimensions.shape)}
-              ${renderDimItem('意境', d.dimensions.style)}
-              ${renderDimItem('风骨', d.dimensions.classic)}
-              ${renderDimItem('实用', d.dimensions.practical)}
-            </div>
           </div>
         </div>
       `;
@@ -107,6 +125,42 @@ export function renderScoring(container) {
         state.step = 'input';
         state.data = null;
         render();
+      });
+
+      const saveBtn = document.getElementById('score-save-btn');
+      saveBtn.addEventListener('click', () => {
+        // Need to mock one_liner if the API didn't return one directly here for scoring vs generation
+        const savePayload = {
+          full_name: d.full_name,
+          score: d.total_score,
+          route: d.route,
+          one_liner: d.overall_comment,
+          dimensions: d.dimensions
+        };
+
+        if (isNameSaved(d.full_name)) {
+          removeName(d.full_name);
+          saveBtn.textContent = '收进藏书阁';
+          saveBtn.style.backgroundColor = 'var(--color-ouhe)';
+        } else {
+          saveName(savePayload);
+          saveBtn.textContent = '已在藏书阁';
+          saveBtn.style.backgroundColor = '#A0AEC0';
+        }
+      });
+
+      const exportBtn = document.getElementById('score-export-btn');
+      exportBtn.addEventListener('click', async () => {
+        exportBtn.textContent = '生成中...';
+        exportBtn.disabled = true;
+        try {
+          // Export the entire card div
+          await exportElementAsPDF('scoring-result-card', `${d.full_name}_新文人起名简述.pdf`);
+        } catch (e) {
+          alert("导出失败");
+        }
+        exportBtn.textContent = '导出解读报告';
+        exportBtn.disabled = false;
       });
     }
   }

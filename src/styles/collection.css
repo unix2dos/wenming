@@ -1,0 +1,122 @@
+.collection-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: var(--spacing-4xl) var(--spacing-lg);
+  min-height: 100vh;
+}
+
+.collection-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-3xl);
+  border-bottom: 2px solid var(--color-border);
+  padding-bottom: var(--spacing-lg);
+}
+
+.collection-header h2 {
+  font-size: 2.5rem;
+  color: var(--color-dai);
+}
+
+.collection-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: center;
+}
+
+.compare-hint {
+  font-size: 0.9rem;
+  color: var(--color-yanhui);
+}
+
+.empty-state {
+  text-align: center;
+  margin-top: 15vh;
+  color: var(--color-yanhui);
+}
+
+.empty-state h3 {
+  font-size: 1.5rem;
+  margin-bottom: var(--spacing-md);
+  color: var(--color-dai);
+}
+
+.collection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-xl);
+}
+
+.col-card {
+  position: relative;
+  background: var(--color-jingbai);
+  padding: var(--spacing-2xl);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  border: 2px solid transparent;
+  transition: all var(--transition-normal);
+  text-align: center;
+}
+
+.col-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-border);
+}
+
+.col-card.selected-compare {
+  border-color: var(--color-ouhe);
+  background-color: rgba(196, 168, 130, 0.05); /* very light ouhe */
+}
+
+.col-checkbox {
+  position: absolute;
+  top: var(--spacing-md);
+  left: var(--spacing-md);
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--color-ouhe);
+}
+
+.col-remove {
+  position: absolute;
+  top: var(--spacing-md);
+  right: var(--spacing-md);
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: var(--color-yanhui);
+  cursor: pointer;
+}
+
+.col-remove:hover {
+  color: #E53E3E;
+}
+
+/* Compare View */
+.compare-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2xl);
+}
+
+.compare-grid {
+  display: flex;
+  gap: var(--spacing-xl);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.compare-item {
+  flex: 1;
+  min-width: 300px;
+  max-width: 400px;
+  background: var(--color-jingbai);
+  padding: var(--spacing-2xl);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  text-align: center;
+  animation: fadeIn var(--transition-normal);
+}
