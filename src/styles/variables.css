@@ -1,0 +1,47 @@
+:root {
+  /* 黛色 / 标题强化文字 */
+  --color-dai: #4A5568;
+  /* 月白 / 页面背景 */
+  --color-yuebai: #F7F3EE;
+  /* 烟灰 / 辅助文字 */
+  --color-yanhui: #A0AEC0;
+  /* 净白 / 卡片底色 */
+  --color-jingbai: #FFFFFF;
+  /* 藕荷 / CTA按钮/亮点 */
+  --color-ouhe: #C4A882;
+  /* 赭石 / 大俗标签 */
+  --color-zheshi: #B7856A;
+  /* 竹青 / 大雅标签 */
+  --color-zhuqing: #7BA08A;
+
+  --color-border: #E2E8F0;
+
+  /* Fonts */
+  --font-title: 'Noto Serif SC', serif;
+  --font-body: 'Noto Sans SC', sans-serif;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  --spacing-2xl: 48px;
+  --spacing-3xl: 64px;
+  --spacing-4xl: 96px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.05);
+
+  /* Radius */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-pill: 9999px;
+
+  /* Transitions */
+  --transition-fast: 0.2s ease;
+  --transition-normal: 0.3s ease;
+}
