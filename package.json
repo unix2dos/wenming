@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "test": "node --test",
+    "test": "node --import ./test-support/register-css-loader.mjs --test",
     "worker:dev": "npm run build && wrangler dev --port 8787",
     "build": "vite build",
     "preview": "npm run build && wrangler dev",
