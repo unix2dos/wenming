@@ -34,4 +34,4 @@ dist-ssr
 # AI
 .agent/
 .codex/
-
+.worktrees/
