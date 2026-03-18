@@ -46,11 +46,15 @@ npm install
 
 ### 2. 配置本地 secret
 
-在项目根目录创建 `.dev.vars`：
+推荐直接从示例文件复制：
 
 ```bash
-OPENROUTER_API_KEY=你的_openrouter_key
+cp .dev.vars.example .dev.vars
 ```
+
+然后把 `.dev.vars` 里的 `OPENROUTER_API_KEY` 改成你自己的 key。
+
+仓库里也提供了 `.env.example`，方便团队统一保留变量说明；但当前项目本地联调真正读取的是 `.dev.vars`。
 
 `.dev.vars` 已被 `.gitignore` 忽略，不会提交到仓库。
 

@@ -1,0 +1,4 @@
+# Cloudflare Wrangler 本地运行时读取这个文件。
+# 复制为 `.dev.vars` 后即可执行 `npm run worker:dev` 或 `npm run preview`。
+
+OPENROUTER_API_KEY=your_openrouter_api_key
