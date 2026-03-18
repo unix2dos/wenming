@@ -126,6 +126,22 @@ npm run deploy
 - `OPENROUTER_API_KEY` 仅存在于 Cloudflare secret 或本地 `.dev.vars`
 - 应用使用 hash 路由，因此刷新 `#/score`、`#/generate` 不依赖服务端路由重写
 
+## 接口限流
+
+为了避免 OpenRouter token 被刷爆，Worker 现在启用了双层限流：
+
+- 第一层：Cloudflare Rate Limiting binding
+  - `/api/generate`：`2 次 / 60 秒 / IP`
+  - `/api/score`：`6 次 / 60 秒 / IP`
+- 第二层：Durable Object 全局配额
+  - `/api/generate`：`5 次 / 10 分钟 / IP`，`15 次 / 24 小时 / IP`
+  - `/api/score`：`15 次 / 10 分钟 / IP`，`60 次 / 24 小时 / IP`
+
+说明：
+- 第一层负责在边缘快速削峰
+- 第二层负责做更准确的全局配额判断
+- 命中任意一层时，接口都会返回 `429`
+
 ## 常见问题
 
 ### 本地点击生成/打分时报错“OPENROUTER_API_KEY 未配置”
@@ -153,6 +169,30 @@ npx wrangler whoami
 ```
 
 如果是 CI/CD 场景，再改用 API Token 配置。
+
+### 被限流时会发生什么
+
+接口会返回类似下面的 JSON：
+
+```json
+{
+  "error": "请求过于频繁，请稍后再试。",
+  "retryAfter": 60,
+  "limitType": "burst"
+}
+```
+
+或者：
+
+```json
+{
+  "error": "今日起名次数已达上限，请明天再试。",
+  "retryAfter": 3600,
+  "limitType": "quota"
+}
+```
+
+后续如果产品加入登录体系，建议把限流 key 从 IP 升级为 `userId` 或 `plan:userId`。
 
 ## 备注
 

@@ -1,5 +1,27 @@
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const OPENROUTER_MODEL = 'google/gemini-2.5-flash';
+const TEN_MINUTES_MS = 10 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+const BURST_RETRY_AFTER_SECONDS = 60;
+
+const ROUTE_POLICIES = {
+  '/api/generate': {
+    routeKey: 'generate',
+    burstBinding: 'GENERATE_BURST_LIMITER',
+    shortLimit: 5,
+    dayLimit: 15,
+    shortError: '10 分钟内起名次数过多，请稍后再试。',
+    dayError: '今日起名次数已达上限，请明天再试。',
+  },
+  '/api/score': {
+    routeKey: 'score',
+    burstBinding: 'SCORE_BURST_LIMITER',
+    shortLimit: 15,
+    dayLimit: 60,
+    shortError: '10 分钟内打分次数过多，请稍后再试。',
+    dayError: '今日打分次数已达上限，请明天再试。',
+  },
+};
 
 function jsonResponse(payload, init = {}) {
   const headers = new Headers(init.headers);
@@ -8,6 +30,115 @@ function jsonResponse(payload, init = {}) {
     ...init,
     headers,
   });
+}
+
+function getClientId(request) {
+  const cfConnectingIp = request.headers.get('CF-Connecting-IP');
+  if (cfConnectingIp) {
+    return cfConnectingIp.trim();
+  }
+
+  const forwardedFor = request.headers.get('x-forwarded-for');
+  if (forwardedFor) {
+    return forwardedFor.split(',')[0].trim();
+  }
+
+  return 'unknown';
+}
+
+function rateLimitResponse(result) {
+  const retryAfter = String(result.retryAfter ?? BURST_RETRY_AFTER_SECONDS);
+  return jsonResponse(
+    {
+      error: result.error || '请求过于频繁，请稍后再试。',
+      retryAfter: Number(retryAfter),
+      limitType: result.limitType || 'burst',
+    },
+    {
+      status: 429,
+      headers: {
+        'Retry-After': retryAfter,
+      },
+    },
+  );
+}
+
+function getRoutePolicy(pathname) {
+  return ROUTE_POLICIES[pathname] || null;
+}
+
+function resetWindowIfExpired(windowState, now, windowMs) {
+  if (!windowState || typeof windowState.startedAt !== 'number' || now >= windowState.startedAt + windowMs) {
+    return {
+      startedAt: now,
+      count: 0,
+    };
+  }
+
+  return windowState;
+}
+
+function toRetryAfter(startedAt, now, windowMs) {
+  return Math.max(1, Math.ceil((startedAt + windowMs - now) / 1000));
+}
+
+async function enforceBurstLimit(request, env, pathname, clientId) {
+  const policy = getRoutePolicy(pathname);
+  if (!policy) {
+    return null;
+  }
+
+  const limiter = env[policy.burstBinding];
+  if (!limiter?.limit) {
+    return null;
+  }
+
+  const outcome = await limiter.limit({
+    key: `${clientId}:${policy.routeKey}`,
+  });
+
+  if (outcome?.success === false) {
+    return {
+      error: '请求过于频繁，请稍后再试。',
+      retryAfter: BURST_RETRY_AFTER_SECONDS,
+      limitType: 'burst',
+    };
+  }
+
+  return null;
+}
+
+async function enforceQuotaLimit(env, pathname, clientId) {
+  const policy = getRoutePolicy(pathname);
+  if (!policy) {
+    return null;
+  }
+
+  const namespace = env.QUOTA_LIMITER;
+  if (!namespace?.idFromName || !namespace?.get) {
+    return null;
+  }
+
+  const id = namespace.idFromName(clientId);
+  const stub = namespace.get(id);
+  const response = await stub.fetch(
+    new Request('https://quota.internal/check', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        routeKey: policy.routeKey,
+      }),
+    }),
+  );
+
+  const result = await response.json();
+  if (response.ok && result.allowed) {
+    return null;
+  }
+
+  return result;
 }
 
 function buildGeneratePrompt(preferences) {
@@ -161,6 +292,78 @@ async function handleScore(request, env, fetchImpl) {
   return jsonResponse(result);
 }
 
+async function evaluateQuota(storage, routeKey, now = Date.now()) {
+  const policy = Object.values(ROUTE_POLICIES).find((item) => item.routeKey === routeKey);
+  if (!policy) {
+    return {
+      allowed: false,
+      error: '未知限流路由。',
+      retryAfter: BURST_RETRY_AFTER_SECONDS,
+      limitType: 'quota',
+    };
+  }
+
+  const currentState = (await storage.get(routeKey)) || {};
+  const tenMinute = resetWindowIfExpired(currentState.tenMinute, now, TEN_MINUTES_MS);
+  const day = resetWindowIfExpired(currentState.day, now, DAY_MS);
+
+  if (day.count >= policy.dayLimit) {
+    return {
+      allowed: false,
+      error: policy.dayError,
+      retryAfter: toRetryAfter(day.startedAt, now, DAY_MS),
+      limitType: 'quota',
+    };
+  }
+
+  if (tenMinute.count >= policy.shortLimit) {
+    return {
+      allowed: false,
+      error: policy.shortError,
+      retryAfter: toRetryAfter(tenMinute.startedAt, now, TEN_MINUTES_MS),
+      limitType: 'quota',
+    };
+  }
+
+  await storage.put(routeKey, {
+    tenMinute: {
+      startedAt: tenMinute.startedAt,
+      count: tenMinute.count + 1,
+    },
+    day: {
+      startedAt: day.startedAt,
+      count: day.count + 1,
+    },
+  });
+
+  return {
+    allowed: true,
+  };
+}
+
+export class QuotaLimiter {
+  constructor(state, env) {
+    this.state = state;
+    this.env = env;
+    this.storage = state.storage;
+  }
+
+  async fetch(request) {
+    if (request.method !== 'POST') {
+      return jsonResponse({ error: '只支持 POST 请求。' }, { status: 405 });
+    }
+
+    const payload = await request.json();
+    const routeKey = payload?.routeKey;
+    const now = typeof payload?.now === 'number' ? payload.now : Date.now();
+    const result = await evaluateQuota(this.storage, routeKey, now);
+
+    return jsonResponse(result, {
+      status: result.allowed ? 200 : 429,
+    });
+  }
+}
+
 export function createWorkerHandler(fetchImpl = fetch) {
   return {
     async fetch(request, env) {
@@ -175,6 +378,17 @@ export function createWorkerHandler(fetchImpl = fetch) {
       }
 
       try {
+        const clientId = getClientId(request);
+        const burstVerdict = await enforceBurstLimit(request, env, url.pathname, clientId);
+        if (burstVerdict) {
+          return rateLimitResponse(burstVerdict);
+        }
+
+        const quotaVerdict = await enforceQuotaLimit(env, url.pathname, clientId);
+        if (quotaVerdict) {
+          return rateLimitResponse(quotaVerdict);
+        }
+
         if (url.pathname === '/api/generate') {
           return await handleGenerate(request, env, fetchImpl);
         }

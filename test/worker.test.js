@@ -1,7 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { createWorkerHandler, extractJsonContent } from '../src/worker.js';
+import { QuotaLimiter, createWorkerHandler, extractJsonContent } from '../src/worker.js';
+
+function createMemoryState() {
+  const store = new Map();
+  return {
+    storage: {
+      async get(key) {
+        return store.get(key);
+      },
+      async put(key, value) {
+        store.set(key, value);
+      },
+    },
+  };
+}
 
 test('extractJsonContent strips fenced json blocks', () => {
   const content = '```json\n{"ok":true}\n```';
@@ -75,4 +89,109 @@ test('worker returns 500 when OPENROUTER_API_KEY is missing', async () => {
   } finally {
     console.error = originalConsoleError;
   }
+});
+
+test('worker returns 429 when burst limiter blocks generate requests', async () => {
+  const handler = createWorkerHandler(async () => {
+    throw new Error('upstream should not be called');
+  });
+
+  const response = await handler.fetch(
+    new Request('https://wenming.example/api/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'CF-Connecting-IP': '203.0.113.8',
+      },
+      body: JSON.stringify({ surname: '林' }),
+    }),
+    {
+      OPENROUTER_API_KEY: 'test-secret',
+      GENERATE_BURST_LIMITER: {
+        limit: async () => ({ success: false }),
+      },
+    },
+  );
+
+  assert.equal(response.status, 429);
+  const payload = await response.json();
+  assert.equal(payload.limitType, 'burst');
+});
+
+test('worker returns 429 when quota limiter blocks score requests', async () => {
+  const handler = createWorkerHandler(async () => {
+    throw new Error('upstream should not be called');
+  });
+
+  const response = await handler.fetch(
+    new Request('https://wenming.example/api/score', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'CF-Connecting-IP': '203.0.113.9',
+      },
+      body: JSON.stringify({ fullName: '林见山' }),
+    }),
+    {
+      OPENROUTER_API_KEY: 'test-secret',
+      SCORE_BURST_LIMITER: {
+        limit: async () => ({ success: true }),
+      },
+      QUOTA_LIMITER: {
+        idFromName: (name) => name,
+        get: () => ({
+          fetch: async () =>
+            new Response(JSON.stringify({
+              allowed: false,
+              limitType: 'quota',
+              retryAfter: 600,
+              error: '今日请求次数已达上限，请明天再试。',
+            }), {
+              status: 200,
+              headers: { 'Content-Type': 'application/json' },
+            }),
+        }),
+      },
+    },
+  );
+
+  assert.equal(response.status, 429);
+  const payload = await response.json();
+  assert.equal(payload.limitType, 'quota');
+});
+
+test('quota limiter blocks generate after five requests in ten minutes', async () => {
+  const limiter = new QuotaLimiter(createMemoryState(), {});
+  let response = null;
+
+  for (let index = 0; index < 5; index += 1) {
+    response = await limiter.fetch(
+      new Request('https://quota.example/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          routeKey: 'generate',
+          now: 1_000,
+        }),
+      }),
+    );
+
+    const payload = await response.json();
+    assert.equal(payload.allowed, true);
+  }
+
+  response = await limiter.fetch(
+    new Request('https://quota.example/check', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        routeKey: 'generate',
+        now: 1_001,
+      }),
+    }),
+  );
+
+  assert.equal(response.status, 429);
+  const blockedPayload = await response.json();
+  assert.equal(blockedPayload.limitType, 'quota');
 });
