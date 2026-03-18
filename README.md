@@ -45,3 +45,12 @@ npm run dev
 ```bash
 npm run preview
 ```
+
+## 自动部署
+
+仓库推送到 `main` 后会通过 GitHub Actions 自动部署到 Cloudflare。
+
+首次启用前，需要在 GitHub 仓库的 Secrets 里配置：
+- `CLOUDFLARE_API_TOKEN`
+- `CLOUDFLARE_ACCOUNT_ID`
+- `OPENROUTER_API_KEY`
