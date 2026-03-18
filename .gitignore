@@ -35,3 +35,7 @@ dist-ssr
 .agent/
 .codex/
 .worktrees/
+
+# Cloudflare
+.dev.vars*
+.wrangler/
