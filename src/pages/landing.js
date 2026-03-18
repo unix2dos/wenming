@@ -1,77 +1,30 @@
 import '../styles/landing.css';
 
 export function renderLanding(container) {
-  const previewNames = [
-    {
-      name: '林见山',
-      routeClass: 'da-ya',
-      routeLabel: '大雅',
-      note: '留白很大，安静却不单薄，适合气质清朗的家庭。'
-    },
-    {
-      name: '林春生',
-      routeClass: 'da-su',
-      routeLabel: '大俗',
-      note: '有泥土感和生命力，不追潮流，却很耐看。'
-    },
-    {
-      name: '林半亩',
-      routeClass: 'da-ya',
-      routeLabel: '名字打分样例',
-      note: '输入已有名字，也能得到五维判断与保留建议。'
-    }
-  ];
-
   container.innerHTML = `
     <div class="landing-page">
-      <section class="hero">
-        <div class="hero-copy">
-          <p class="hero-kicker">问名</p>
-          <h1 class="title">不靠玄学，给宝宝起一个经得住时间的名字。</h1>
-          <p class="hero-summary">
-            从常用字里做审美判断，不生僻，不造作，帮你挑出真正值得留下的名字。
-          </p>
-          <div class="value-pills">
-            <span>不用生僻字</span>
-            <span>不走八字玄学</span>
-            <span>重审美判断</span>
-          </div>
-          <div class="hero-actions">
-            <a href="#/generate" class="btn hero-btn hero-btn-primary">给宝宝取名</a>
-            <a href="#/score" class="btn hero-btn hero-btn-secondary">看看名字好不好</a>
-          </div>
-        </div>
-      </section>
+      <div class="hero">
+        <h1 class="title">问名</h1>
+        <p class="slogan">大雅大俗，新文人起名</p>
+      </div>
+      
+      <div class="entry-cards">
+        <a href="#/generate" class="entry-card">
+          <h3>给宝宝取名</h3>
+          <p>输入姓氏偏好，推敲 8 个具有新文人特质的名字</p>
+        </a>
+        <a href="#/score" class="entry-card">
+          <h3>看看名字好不好</h3>
+          <p>输入已有名字，获取新文人 5 维专属打分</p>
+        </a>
+      </div>
 
-      <section class="preview-section">
-        <div class="section-heading">
-          <h2>结果不会只说“都很好”。</h2>
-          <p>你会直接看到哪些名字值得留下，哪些名字有风格但更挑人。</p>
-        </div>
-
-        <div class="preview-grid">
-          ${previewNames.map((item) => `
-            <article class="preview-card">
-              <div class="preview-card-top">
-                <div class="preview-name">${item.name}</div>
-                <span class="pill ${item.routeClass}">${item.routeLabel}</span>
-              </div>
-              <p class="preview-note">${item.note}</p>
-            </article>
-          `).join('')}
-        </div>
-      </section>
-
-      <section class="support-bar">
-        <p>可收藏候选名，可慢慢比较，也可带去和家人一起讨论。</p>
-      </section>
-
-      <div class="footer-names" aria-hidden="true">
-        <span>见山</span>
-        <span>修远</span>
-        <span>田野</span>
-        <span>春生</span>
-        <span>听泉</span>
+      <div class="footer-names">
+        <span>林半亩</span>
+        <span>沈田野</span>
+        <span>杨见山</span>
+        <span>汪大川</span>
+        <span>陈修远</span>
       </div>
     </div>
   `;
