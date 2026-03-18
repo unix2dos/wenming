@@ -5,198 +5,306 @@ import { renderRadarChart } from '../components/radar-chart.js';
 import { saveName, removeName, isNameSaved } from '../utils/storage.js';
 import { exportElementAsPDF } from '../utils/export.js';
 import { formatApiErrorMessage } from '../utils/api-error.js';
+import { getAcceptanceProfile, getGenerationPreset, parseHashQuery } from '../utils/direction-quiz.js';
+
+function escapeAttr(value = '') {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('"', '&quot;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;');
+}
 
 export function renderGeneration(container) {
+  const query = parseHashQuery();
+  const presetProfileId = query.get('profile');
+  const preset = presetProfileId ? getGenerationPreset(presetProfileId) : null;
+  const acceptance = getAcceptanceProfile(query.get('acceptance'));
+
   let state = {
-    step: 'input', // 'input', 'loading', 'result'
+    step: 'input',
     error: null,
-    data: null, // Array of 8 names
-    selectedStyle: '不限',
-    selectedDetail: null // For modal
+    data: null,
+    selectedStyle: preset?.style || '不限',
+    advancedOpen: Boolean(preset),
+    form: {
+      surname: '',
+      gender: '未知',
+      specificWords: '',
+      excludeWords: '',
+      freeDescription: preset?.freeDescription || '',
+    },
   };
+
+  function renderInput() {
+    const helperTitle = preset
+      ? `沿着${preset.profile.camp} · ${preset.profile.type}起名`
+      : '为宝宝求个好名';
+    const helperCopy = preset
+      ? `先沿你们测出的方向起名，会比直接生成一批随机候选更像“你们会真正选中的名字”。`
+      : '输入姓氏与偏好，推敲出更贴近你们审美方向的候选名。';
+
+    container.innerHTML = `
+      <div class="generation-page">
+        <div class="header-back generation-topbar">
+          <a href="#/" class="text-link">返回首页</a>
+          <div class="generation-topbar-links">
+            <a href="#/test" class="text-link">测命名方向</a>
+            <a href="#/collection" class="text-link">我的藏书阁</a>
+          </div>
+        </div>
+
+        ${preset ? `
+          <section class="direction-panel">
+            <div class="direction-panel-copy">
+              <span class="pill ${preset.profile.camp === '大雅' ? 'da-ya' : 'da-su'}">偏${preset.profile.camp}</span>
+              <h2>${preset.profile.type}</h2>
+              <p>${preset.profile.summary}</p>
+              <div class="sample-chip-row">
+                ${preset.profile.names.map((name) => `<span class="sample-chip">${name}</span>`).join('')}
+              </div>
+            </div>
+            <div class="direction-panel-note">
+              <p class="direction-panel-label">家人接受度</p>
+              <strong>${acceptance.label}</strong>
+              <span>${acceptance.summary}</span>
+            </div>
+          </section>
+        ` : ''}
+
+        <div class="form-section">
+          <div class="generation-heading">
+            <h1>${helperTitle}</h1>
+            <p>${helperCopy}</p>
+          </div>
+
+          <form id="gen-form" class="gen-form">
+            <div class="basic-row">
+              <div class="form-group basic-surname-group">
+                <label for="surname">宝宝姓氏</label>
+                <input type="text" id="surname" class="input-underline" placeholder="例如：林" required maxlength="2" autocomplete="off" value="${escapeAttr(state.form.surname)}" />
+              </div>
+
+              <div class="form-group basic-gender-group">
+                <label>性别</label>
+                <div class="gender-options" role="radiogroup" aria-label="宝宝性别">
+                  <label class="gender-option">
+                    <input type="radio" name="gender" value="男" ${state.form.gender === '男' ? 'checked' : ''}>
+                    <span>男孩</span>
+                  </label>
+                  <label class="gender-option">
+                    <input type="radio" name="gender" value="女" ${state.form.gender === '女' ? 'checked' : ''}>
+                    <span>女孩</span>
+                  </label>
+                  <label class="gender-option">
+                    <input type="radio" name="gender" value="未知" ${state.form.gender === '未知' ? 'checked' : ''}>
+                    <span>尚未可知</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="freeDesc">自由描述期待 <span class="optional">(选填)</span></label>
+              <textarea id="freeDesc" class="textarea-underline" rows="3" placeholder="例如：希望名字有秋天的感觉，或者像古诗里的悠远意境">${escapeAttr(state.form.freeDescription)}</textarea>
+            </div>
+
+            <details class="advanced-panel" ${state.advancedOpen ? 'open' : ''}>
+              <summary id="advanced-toggle" class="advanced-summary">
+                <span>高级设置</span>
+                <span class="advanced-summary-copy">风格偏好、指定字、排除字</span>
+              </summary>
+
+              <div class="advanced-content">
+                <div class="form-group">
+                  <label>风格偏好</label>
+                  <div class="style-cards" id="style-selector">
+                    <div class="style-card ${state.selectedStyle === '大雅' ? 'selected' : ''}" data-style="大雅">
+                      <h4>大雅</h4>
+                      <p>端正、留白、耐看</p>
+                      <p class="style-card-example">如：见初、清和</p>
+                    </div>
+                    <div class="style-card ${state.selectedStyle === '大俗' ? 'selected' : ''}" data-style="大俗">
+                      <h4>大俗</h4>
+                      <p>自然、有劲、有人间感</p>
+                      <p class="style-card-example">如：春生、大川</p>
+                    </div>
+                    <div class="style-card ${state.selectedStyle === '不限' ? 'selected' : ''}" data-style="不限">
+                      <h4>不限</h4>
+                      <p>先看一批方向混合的候选</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="specific">指定辈分或必含字 <span class="optional">(选填)</span></label>
+                  <input type="text" id="specific" class="input-underline" placeholder="例如：中间的字必须是“文”" autocomplete="off" value="${escapeAttr(state.form.specificWords)}" />
+                </div>
+
+                <div class="form-group">
+                  <label for="exclude">排除忌讳字 <span class="optional">(选填)</span></label>
+                  <input type="text" id="exclude" class="input-underline" placeholder="例如：排除水旁，排除“国”字" autocomplete="off" value="${escapeAttr(state.form.excludeWords)}" />
+                </div>
+              </div>
+            </details>
+
+            ${state.error ? `<div class="error-message generation-error">${state.error}</div>` : ''}
+
+            <div class="gen-actions">
+              <button type="submit" class="btn">沿着这一路子起名</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+
+    document.querySelectorAll('.style-card').forEach((card) => {
+      card.addEventListener('click', (event) => {
+        state.selectedStyle = event.currentTarget.dataset.style;
+        document.querySelectorAll('.style-card').forEach((current) => current.classList.remove('selected'));
+        event.currentTarget.classList.add('selected');
+      });
+    });
+
+    const advancedPanel = document.querySelector('.advanced-panel');
+    if (advancedPanel) {
+      advancedPanel.addEventListener('toggle', () => {
+        state.advancedOpen = advancedPanel.open;
+      });
+    }
+
+    document.getElementById('surname').addEventListener('input', (event) => {
+      state.form.surname = event.target.value;
+    });
+    document.getElementById('specific').addEventListener('input', (event) => {
+      state.form.specificWords = event.target.value;
+    });
+    document.getElementById('exclude').addEventListener('input', (event) => {
+      state.form.excludeWords = event.target.value;
+    });
+    document.getElementById('freeDesc').addEventListener('input', (event) => {
+      state.form.freeDescription = event.target.value;
+    });
+    document.querySelectorAll('input[name="gender"]').forEach((radio) => {
+      radio.addEventListener('change', (event) => {
+        state.form.gender = event.target.value;
+      });
+    });
+
+    document.getElementById('gen-form').addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const preferences = {
+        surname: state.form.surname.trim(),
+        gender: state.form.gender,
+        style: state.selectedStyle,
+        specificWords: state.form.specificWords.trim(),
+        excludeWords: state.form.excludeWords.trim(),
+        freeDescription: state.form.freeDescription.trim(),
+      };
+
+      state.step = 'loading';
+      state.error = null;
+      render();
+
+      try {
+        const result = await generateNames(preferences);
+        if (!Array.isArray(result) || result.length === 0) {
+          throw new Error('AI 返回了错误的数据格式');
+        }
+        state.data = result;
+        state.step = 'result';
+      } catch (error) {
+        state.error = formatApiErrorMessage(error, '起名');
+        state.step = 'input';
+      }
+
+      render();
+    });
+  }
+
+  function renderLoadingState() {
+    container.innerHTML = `
+      <div class="generation-page">
+        <div class="header-back generation-topbar">
+          <button id="cancel-btn" class="btn-text text-link">打断推敲</button>
+        </div>
+        <div id="loading-root"></div>
+      </div>
+    `;
+
+    renderLoading(
+      document.getElementById('loading-root'),
+      preset ? '沿着你们测出的方向研墨起名…' : 'AI 正在研墨… 取山野之息，酝文人之雅'
+    );
+
+    document.getElementById('cancel-btn').addEventListener('click', () => {
+      state.step = 'input';
+      render();
+    });
+  }
+
+  function renderResultState() {
+    container.innerHTML = `
+      <div class="generation-page">
+        <div class="header-back generation-topbar">
+          <button id="re-gen-btn" class="btn-text text-link">换一批 / 重新起名</button>
+          <div class="generation-topbar-links">
+            <a href="#/test" class="text-link">重测方向</a>
+            <a href="#/collection" class="text-link">我的藏书阁</a>
+          </div>
+        </div>
+
+        <div class="results-section">
+          <div class="results-header">
+            <h2>${preset ? `沿着${preset.profile.type}推敲出的候选名` : '为您推敲的候选名'}</h2>
+            <p class="results-subtitle">点击卡片查看雷达分布与收藏、导出动作。</p>
+          </div>
+
+          <div class="results-grid">
+            ${state.data.map((item, index) => {
+              const routeClass = item.route === '大雅' ? 'da-ya' : 'da-su';
+              return `
+                <div class="name-card" data-idx="${index}">
+                  <div class="name-card-title">${item.full_name}</div>
+                  <div class="name-card-meta">
+                    <span class="name-card-score">${item.score}分</span>
+                    <span class="pill ${routeClass}">${item.route}</span>
+                  </div>
+                  <div class="name-card-desc">"${item.one_liner}"</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+
+        <div id="detail-modal" class="detail-modal">
+          <div class="detail-content" id="detail-content"></div>
+        </div>
+      </div>
+    `;
+
+    document.getElementById('re-gen-btn').addEventListener('click', () => {
+      state.step = 'input';
+      state.data = null;
+      render();
+    });
+
+    document.querySelectorAll('.name-card').forEach((card) => {
+      card.addEventListener('click', (event) => {
+        const index = Number(event.currentTarget.dataset.idx);
+        openDetailModal(state.data[index]);
+      });
+    });
+  }
 
   function render() {
     if (state.step === 'input') {
-      container.innerHTML = `
-        <div class="generation-page">
-          <div class="header-back" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
-            <a href="#/" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-left" style="width:1.2em; height:1.2em;"></i> 返回首页</a>
-            <a href="#/collection" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="library" style="width:1.2em; height:1.2em;"></i> 我的藏书阁</a>
-          </div>
-          <div class="form-section">
-            <h2>为宝宝求个好名</h2>
-            <form id="gen-form" class="gen-form">
-              <div class="form-group">
-                <label for="surname">宝宝姓氏</label>
-                <input type="text" id="surname" class="input-underline" placeholder="例如: 林" required maxlength="2" autocomplete="off" />
-              </div>
-              
-              <div class="form-group">
-                <label>性别</label>
-                <div class="segmented-control">
-                  <label><input type="radio" name="gender" value="男" required>男孩</label>
-                  <label><input type="radio" name="gender" value="女" required>女孩</label>
-                  <label><input type="radio" name="gender" value="未知" checked>尚未可知</label>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label>风格偏好</label>
-                <div class="style-cards" id="style-selector">
-                  <div class="style-card ${state.selectedStyle === '大雅' ? 'selected' : ''}" data-style="大雅">
-                    <h4>大雅</h4>
-                    <p>禅意水墨，意象含蓄</p>
-                    <p style="font-size:0.75rem; color:#A0AEC0;">如: 见山, 修远</p>
-                  </div>
-                  <div class="style-card ${state.selectedStyle === '大俗' ? 'selected' : ''}" data-style="大俗">
-                    <h4>大俗</h4>
-                    <p>质朴原野，生命力蓬勃</p>
-                    <p style="font-size:0.75rem; color:#A0AEC0;">如: 田野, 大川</p>
-                  </div>
-                  <div class="style-card ${state.selectedStyle === '不限' ? 'selected' : ''}" data-style="不限">
-                    <h4>兼容并蓄</h4>
-                    <p>大雅大俗皆可</p>
-                  </div>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label for="specific">指定辈分或必含字 <span class="optional">(选填)</span></label>
-                <input type="text" id="specific" class="input-underline" placeholder="例如: 中间的字必须是'文'" autocomplete="off" />
-              </div>
-
-              <div class="form-group">
-                <label for="exclude">排除忌讳字 <span class="optional">(选填)</span></label>
-                <input type="text" id="exclude" class="input-underline" placeholder="例如: 排除水旁，排除'国'字" autocomplete="off" />
-              </div>
-
-              <div class="form-group">
-                <label for="freeDesc">自由描述期待 <span class="optional">(选填)</span></label>
-                <textarea id="freeDesc" class="textarea-underline" rows="2" placeholder="例如: 希望有秋天的感觉，或者像古诗词里的悠远意境"></textarea>
-              </div>
-
-              ${state.error ? `<div class="error-message" style="text-align:center;">${state.error}</div>` : ''}
-
-              <div class="gen-actions">
-                <button type="submit" class="btn">研墨推敲 (生成8个名字)</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      `;
-
-      // Style selector logic
-      document.querySelectorAll('.style-card').forEach(card => {
-        card.addEventListener('click', (e) => {
-          state.selectedStyle = e.currentTarget.dataset.style;
-          // Optimistic visual update
-          document.querySelectorAll('.style-card').forEach(c => c.classList.remove('selected'));
-          e.currentTarget.classList.add('selected');
-        });
-      });
-
-      // Submit logic
-      document.getElementById('gen-form').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const preferences = {
-          surname: document.getElementById('surname').value.trim(),
-          gender: document.querySelector('input[name="gender"]:checked').value,
-          style: state.selectedStyle,
-          specificWords: document.getElementById('specific').value.trim(),
-          excludeWords: document.getElementById('exclude').value.trim(),
-          freeDescription: document.getElementById('freeDesc').value.trim()
-        };
-        
-        state.step = 'loading';
-        state.error = null;
-        render();
-
-        try {
-          const result = await generateNames(preferences);
-          if (!Array.isArray(result) || result.length === 0) {
-            throw new Error("AI 返回了错误的数据格式");
-          }
-          state.data = result;
-          state.step = 'result';
-        } catch (err) {
-          state.error = formatApiErrorMessage(err, '起名');
-          console.error(err);
-          state.step = 'input';
-        }
-        render();
-      });
-
+      renderInput();
     } else if (state.step === 'loading') {
-
-      container.innerHTML = `
-        <div class="generation-page">
-          <div class="header-back" style="margin-bottom: 24px;">
-            <button id="cancel-btn" class="btn-text" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-left" style="width:1.2em; height:1.2em;"></i> 打断推敲</button>
-          </div>
-          <div id="loading-root"></div>
-        </div>
-      `;
-      renderLoading(document.getElementById('loading-root'), "AI 正在研墨... 取山野之息，酝文人之雅");
-      document.getElementById('cancel-btn').addEventListener('click', () => {
-        state.step = 'input';
-        render();
-      });
-
+      renderLoadingState();
     } else if (state.step === 'result') {
-
-      container.innerHTML = `
-        <div class="generation-page">
-          <div class="header-back" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
-            <button id="re-gen-btn" class="btn-text" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="rotate-ccw" style="width:1.2em; height:1.2em;"></i> 换一批 / 重新起名</button>
-            <a href="#/collection" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="library" style="width:1.2em; height:1.2em;"></i> 我的藏书阁</a>
-          </div>
-          
-          <div class="results-section">
-            <div class="results-header">
-              <h2>为您推敲的 8 个佳名</h2>
-              <p class="slogan" style="font-size:0.95rem;">点击卡片查看详细五维打分</p>
-            </div>
-            
-            <div class="results-grid">
-              ${state.data.map((item, idx) => {
-                const routeClass = item.route === '大雅' ? 'da-ya' : 'da-su';
-                return `
-                  <div class="name-card" data-idx="${idx}">
-                    <div class="name-card-title">${item.full_name}</div>
-                    <div class="name-card-meta">
-                      <span class="name-card-score">${item.score}分</span>
-                      <span class="pill ${routeClass}">${item.route}</span>
-                    </div>
-                    <div class="name-card-desc">"${item.one_liner}"</div>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          </div>
-
-          <!-- Detail Modal -->
-          <div id="detail-modal" class="detail-modal">
-            <div class="detail-content" id="detail-content">
-              <!-- Injected by JS -->
-            </div>
-          </div>
-        </div>
-      `;
-
-      // re-gen btn
-      document.getElementById('re-gen-btn').addEventListener('click', () => {
-        state.step = 'input';
-        state.data = null;
-        render();
-      });
-
-      // Card click handling
-      document.querySelectorAll('.name-card').forEach(card => {
-        card.addEventListener('click', (e) => {
-          const idx = parseInt(e.currentTarget.dataset.idx, 10);
-          openDetailModal(state.data[idx]);
-        });
-      });
+      renderResultState();
     }
 
     if (window.lucide) {
@@ -208,50 +316,49 @@ export function renderGeneration(container) {
     const modal = document.getElementById('detail-modal');
     const content = document.getElementById('detail-content');
     const routeClass = nameData.route === '大雅' ? 'da-ya' : 'da-su';
-    
-    const isSaved = isNameSaved(nameData.full_name);
-    
-    // We reuse the scoring UI visually in the modal
+    const saved = isNameSaved(nameData.full_name);
+
     content.innerHTML = `
       <button class="modal-close no-export" id="modal-close">&times;</button>
       <div id="modal-export-area">
-        <div style="text-align:center; margin-bottom: 24px;">
-          <div class="result-name" style="font-size: 2.5rem; margin-bottom:8px;">${nameData.full_name}</div>
+        <div class="generation-modal-header">
+          <div class="result-name modal-name">${nameData.full_name}</div>
           <div class="result-meta">
-            <div class="total-score" style="font-size: 1.5rem;">${nameData.score}<span> / 100</span></div>
+            <div class="total-score modal-score">${nameData.score}<span> / 100</span></div>
             <span class="pill ${routeClass}">${nameData.route}</span>
           </div>
-          <div class="overall-comment" style="font-size:1rem; margin-top:16px;">"${nameData.one_liner}"</div>
+          <div class="overall-comment modal-comment">"${nameData.one_liner}"</div>
         </div>
-        <div class="radar-container" style="margin: 24px 0;">
+        <div class="radar-container generation-modal-radar">
           <canvas id="modal-radar-canvas" style="width: 250px; height: 250px; margin: 0 auto; display:block;"></canvas>
         </div>
-        <div style="text-align:center; color:#A0AEC0; font-size:0.85rem;">生成简报中未包含详细单项解析，仅供快速概览雷达分布。若需深究，可前往「看看名字好不好」。</div>
+        <div class="generation-modal-note">这里展示的是候选名的快速雷达概览，方便你们先做第一轮筛选。</div>
       </div>
-      
-      <div class="modal-actions no-export" style="display:flex; justify-content:center; gap:16px; margin-top:32px;">
-        <button id="modal-save-btn" class="btn" style="background-color: ${isSaved ? '#A0AEC0' : 'var(--color-ouhe)'};">
-          ${isSaved ? '已在藏书阁' : '收进藏书阁'}
+
+      <div class="modal-actions no-export generation-modal-actions">
+        <button id="modal-save-btn" class="btn" style="background-color: ${saved ? '#A0AEC0' : 'var(--color-ouhe)'};">
+          ${saved ? '已在藏书阁' : '收进藏书阁'}
         </button>
         <button id="modal-export-btn" class="btn" style="background-color: var(--color-zhuqing);">
           导出为解读卷宗
         </button>
       </div>
     `;
-    
+
     modal.classList.add('active');
-    
+
     setTimeout(() => {
       renderRadarChart('modal-radar-canvas', nameData.dimensions);
     }, 50);
 
-    // Binds
     document.getElementById('modal-close').addEventListener('click', () => {
       modal.classList.remove('active');
     });
-    // Close on background click
-    modal.addEventListener('click', (e) => {
-      if (e.target === modal) modal.classList.remove('active');
+
+    modal.addEventListener('click', (event) => {
+      if (event.target === modal) {
+        modal.classList.remove('active');
+      }
     });
 
     const saveBtn = document.getElementById('modal-save-btn');
@@ -273,13 +380,12 @@ export function renderGeneration(container) {
       exportBtn.disabled = true;
       try {
         await exportElementAsPDF('detail-content', `${nameData.full_name}_新文人起名简报.pdf`);
-      } catch (e) {
-        alert("导出失败");
+      } catch {
+        alert('导出失败');
       }
       exportBtn.textContent = '导出为解读卷宗';
       exportBtn.disabled = false;
     });
-
   }
 
   render();

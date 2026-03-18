@@ -233,14 +233,16 @@ function normalizeGenerateResult(parsed) {
 }
 
 async function fetchOpenRouter(promptPayload, env, fetchImpl) {
-  if (!env.OPENROUTER_API_KEY) {
+  const apiKey = env.OPENROUTER_API_KEY || env.VITE_OPENROUTER_API_KEY;
+
+  if (!apiKey) {
     throw new Error('Cloudflare secret OPENROUTER_API_KEY 未配置。');
   }
 
   const response = await fetchImpl(OPENROUTER_URL, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({

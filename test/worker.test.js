@@ -91,6 +91,41 @@ test('worker returns 500 when OPENROUTER_API_KEY is missing', async () => {
   }
 });
 
+test('worker accepts legacy VITE_OPENROUTER_API_KEY env for local development', async () => {
+  let upstreamRequest = null;
+
+  const handler = createWorkerHandler(async (url, init) => {
+    upstreamRequest = { url, init };
+    return new Response(
+      JSON.stringify({
+        choices: [
+          {
+            message: {
+              content: '{"total_score":90,"route":"大雅","route_reason":"测试","dimensions":{"sound":{"score":18,"analysis":"顺"},"shape":{"score":18,"analysis":"稳"},"style":{"score":18,"analysis":"雅"},"classic":{"score":18,"analysis":"静"},"practical":{"score":18,"analysis":"准"}},"overall_comment":"可用"}',
+            },
+          },
+        ],
+      }),
+      {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+  });
+
+  const response = await handler.fetch(
+    new Request('https://wenming.example/api/score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fullName: '林见山' }),
+    }),
+    { VITE_OPENROUTER_API_KEY: 'legacy-test-secret' },
+  );
+
+  assert.equal(response.status, 200);
+  assert.match(upstreamRequest.init.headers.Authorization, /^Bearer legacy-test-secret$/);
+});
+
 test('worker returns 429 when burst limiter blocks generate requests', async () => {
   const handler = createWorkerHandler(async () => {
     throw new Error('upstream should not be called');
