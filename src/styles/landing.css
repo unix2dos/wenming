@@ -30,23 +30,25 @@
 }
 
 .landing-hero {
-  max-width: 760px;
+  max-width: 1040px;
   margin: 0 auto var(--spacing-4xl);
   display: grid;
-  align-content: center;
+  align-content: start;
   gap: var(--spacing-xl);
   min-height: calc(100vh - 240px);
+  padding-top: clamp(72px, 10vh, 120px);
 }
 
 .landing-hero-copy {
   display: grid;
   gap: var(--spacing-md);
+  max-width: 980px;
 }
 
 .landing-title {
-  font-size: clamp(3rem, 6.2vw, 4.9rem);
+  font-size: clamp(3rem, 5.25vw, 4.75rem);
   line-height: 1.08;
-  max-width: 620px;
+  max-width: none;
 }
 
 .landing-subtitle {
@@ -146,6 +148,7 @@
   .landing-hero {
     min-height: auto;
     margin-bottom: var(--spacing-3xl);
+    padding-top: 0;
   }
 
   .landing-title {
