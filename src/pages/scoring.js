@@ -16,9 +16,9 @@ export function renderScoring(container) {
     if (state.step === 'input') {
       container.innerHTML = `
         <div class="scoring-page">
-          <div class="header-back" style="display:flex; justify-content:space-between;">
-            <a href="#/">&larr; 返回首页</a>
-            <a href="#/collection">📚 我的藏书阁</a>
+          <div class="header-back" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
+            <a href="#/" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-left" style="width:1.2em; height:1.2em;"></i> 返回首页</a>
+            <a href="#/collection" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="library" style="width:1.2em; height:1.2em;"></i> 我的藏书阁</a>
           </div>
           <div class="input-section">
             <h2>看看名字好不好</h2>
@@ -53,8 +53,8 @@ export function renderScoring(container) {
     } else if (state.step === 'loading') {
       container.innerHTML = `
         <div class="scoring-page">
-          <div class="header-back">
-            <a href="javascript:void(0)" id="cancel-btn">&larr; 取消返回</a>
+          <div class="header-back" style="margin-bottom: 24px;">
+            <button id="cancel-btn" class="btn-text" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-left" style="width:1.2em; height:1.2em;"></i> 取消返回</button>
           </div>
           <div id="loading-root"></div>
         </div>
@@ -72,9 +72,9 @@ export function renderScoring(container) {
       
       container.innerHTML = `
         <div class="scoring-page">
-          <div class="header-back" style="display:flex; justify-content:space-between;">
-            <a href="javascript:void(0)" id="re-score-btn">&larr; 测下一个名字</a>
-            <a href="#/collection">📚 我的藏书阁</a>
+          <div class="header-back" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
+            <button id="re-score-btn" class="btn-text" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-right" style="width:1.2em; height:1.2em;"></i> 测下一个名字</button>
+            <a href="#/collection" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="library" style="width:1.2em; height:1.2em;"></i> 我的藏书阁</a>
           </div>
           
           <div class="result-card" id="scoring-result-card">
@@ -162,6 +162,10 @@ export function renderScoring(container) {
         exportBtn.textContent = '导出解读报告';
         exportBtn.disabled = false;
       });
+    }
+
+    if (window.lucide) {
+      window.lucide.createIcons();
     }
   }
 

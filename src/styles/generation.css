@@ -41,17 +41,38 @@
   margin-left: var(--spacing-xs);
 }
 
-.radio-group {
+/* Segmented Control */
+.segmented-control {
   display: flex;
-  gap: var(--spacing-lg);
+  background-color: var(--color-border);
+  padding: 4px;
+  border-radius: var(--radius-md);
+  gap: var(--spacing-xs);
 }
 
-.radio-group label {
-  font-weight: normal;
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
+.segmented-control label {
+  flex: 1;
+  text-align: center;
+  position: relative;
   cursor: pointer;
+  padding: var(--spacing-sm) 0;
+  border-radius: var(--radius-sm);
+  color: var(--color-yanhui);
+  font-weight: 500;
+  transition: all var(--transition-fast);
+  display: block; /* ensure block level for flex child */
+}
+
+.segmented-control input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.segmented-control label:has(input[type="radio"]:checked) {
+  background-color: var(--color-jingbai);
+  color: var(--color-dai);
+  box-shadow: var(--shadow-sm);
 }
 
 .style-cards {
@@ -180,7 +201,9 @@
 .detail-modal {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(247, 243, 238, 0.95); /* yuebai */
+  background: rgba(247, 243, 238, 0.8) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -197,6 +220,10 @@
   pointer-events: auto;
 }
 
+.detail-modal.active .detail-content {
+  transform: translateY(0) scale(1);
+}
+
 .detail-content {
   background: var(--color-jingbai);
   border-radius: var(--radius-lg);
@@ -207,6 +234,8 @@
   position: relative;
   max-height: 90vh;
   overflow-y: auto;
+  transform: translateY(20px) scale(0.98);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .modal-close {

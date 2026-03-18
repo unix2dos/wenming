@@ -18,9 +18,9 @@ export function renderGeneration(container) {
     if (state.step === 'input') {
       container.innerHTML = `
         <div class="generation-page">
-          <div class="header-back" style="display:flex; justify-content:space-between;">
-            <a href="#/">&larr; 返回首页</a>
-            <a href="#/collection">📚 我的藏书阁</a>
+          <div class="header-back" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
+            <a href="#/" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-left" style="width:1.2em; height:1.2em;"></i> 返回首页</a>
+            <a href="#/collection" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="library" style="width:1.2em; height:1.2em;"></i> 我的藏书阁</a>
           </div>
           <div class="form-section">
             <h2>为宝宝求个好名</h2>
@@ -32,10 +32,10 @@ export function renderGeneration(container) {
               
               <div class="form-group">
                 <label>性别</label>
-                <div class="radio-group">
-                  <label><input type="radio" name="gender" value="男" required> 男孩</label>
-                  <label><input type="radio" name="gender" value="女" required> 女孩</label>
-                  <label><input type="radio" name="gender" value="未知" checked> 尚未可知</label>
+                <div class="segmented-control">
+                  <label><input type="radio" name="gender" value="男" required>男孩</label>
+                  <label><input type="radio" name="gender" value="女" required>女孩</label>
+                  <label><input type="radio" name="gender" value="未知" checked>尚未可知</label>
                 </div>
               </div>
 
@@ -129,8 +129,8 @@ export function renderGeneration(container) {
 
       container.innerHTML = `
         <div class="generation-page">
-          <div class="header-back">
-            <a href="javascript:void(0)" id="cancel-btn">&larr; 打断推敲</a>
+          <div class="header-back" style="margin-bottom: 24px;">
+            <button id="cancel-btn" class="btn-text" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-left" style="width:1.2em; height:1.2em;"></i> 打断推敲</button>
           </div>
           <div id="loading-root"></div>
         </div>
@@ -145,9 +145,9 @@ export function renderGeneration(container) {
 
       container.innerHTML = `
         <div class="generation-page">
-          <div class="header-back" style="display:flex; justify-content:space-between;">
-            <a href="javascript:void(0)" id="re-gen-btn">&larr; 换一批 / 重新起名</a>
-            <a href="#/collection">📚 我的藏书阁</a>
+          <div class="header-back" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
+            <button id="re-gen-btn" class="btn-text" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="rotate-ccw" style="width:1.2em; height:1.2em;"></i> 换一批 / 重新起名</button>
+            <a href="#/collection" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="library" style="width:1.2em; height:1.2em;"></i> 我的藏书阁</a>
           </div>
           
           <div class="results-section">
@@ -196,6 +196,10 @@ export function renderGeneration(container) {
           openDetailModal(state.data[idx]);
         });
       });
+    }
+
+    if (window.lucide) {
+      window.lucide.createIcons();
     }
   }
 

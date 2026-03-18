@@ -13,8 +13,8 @@ export function renderCollection(container) {
     if (state.names.length === 0) {
       container.innerHTML = `
         <div class="collection-page">
-          <div class="header-back">
-            <a href="#/">&larr; 返回首页</a>
+          <div class="header-back" style="margin-bottom: 24px;">
+            <a href="#/" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-left" style="width:1.2em; height:1.2em;"></i> 返回首页</a>
           </div>
           <div class="empty-state">
             <h3>藏书阁空空如也</h3>
@@ -36,7 +36,7 @@ export function renderCollection(container) {
       container.innerHTML = `
         <div class="collection-page">
           <div class="header-back" style="margin-bottom: 16px;">
-            <a href="#/">&larr; 返回首页</a>
+            <a href="#/" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-left" style="width:1.2em; height:1.2em;"></i> 返回首页</a>
           </div>
           <div class="collection-header">
             <h2>我的藏书阁</h2>
@@ -111,7 +111,7 @@ export function renderCollection(container) {
       container.innerHTML = `
         <div class="collection-page">
           <div class="header-back" style="margin-bottom: 24px;">
-            <a href="javascript:void(0)" id="back-to-list">&larr; 返回藏书阁列表</a>
+            <button id="back-to-list" class="btn-text" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-left" style="width:1.2em; height:1.2em;"></i> 返回藏书阁列表</button>
           </div>
           
           <div class="compare-view">
@@ -154,6 +154,10 @@ export function renderCollection(container) {
         state.view = 'list';
         render();
       });
+    }
+
+    if (window.lucide) {
+      window.lucide.createIcons();
     }
   }
 
