@@ -4,6 +4,7 @@ import { renderLoading } from '../components/loading.js';
 import { renderRadarChart } from '../components/radar-chart.js';
 import { saveName, removeName, isNameSaved } from '../utils/storage.js';
 import { exportElementAsPDF } from '../utils/export.js';
+import { formatApiErrorMessage } from '../utils/api-error.js';
 
 export function renderScoring(container) {
   let state = {
@@ -45,7 +46,7 @@ export function renderScoring(container) {
           state.data = { full_name: name, ...result }; // ensure full_name key matches storage logic
           state.step = 'result';
         } catch (err) {
-          state.error = "打分失败，请稍后重试或检查配置。";
+          state.error = formatApiErrorMessage(err, '打分');
           state.step = 'input';
         }
         render();

@@ -4,6 +4,7 @@ import { renderLoading } from '../components/loading.js';
 import { renderRadarChart } from '../components/radar-chart.js';
 import { saveName, removeName, isNameSaved } from '../utils/storage.js';
 import { exportElementAsPDF } from '../utils/export.js';
+import { formatApiErrorMessage } from '../utils/api-error.js';
 
 export function renderGeneration(container) {
   let state = {
@@ -118,7 +119,7 @@ export function renderGeneration(container) {
           state.data = result;
           state.step = 'result';
         } catch (err) {
-          state.error = "起名过程遇到阻碍，请检查 API 配置或重试。";
+          state.error = formatApiErrorMessage(err, '起名');
           console.error(err);
           state.step = 'input';
         }

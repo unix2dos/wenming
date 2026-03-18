@@ -16,7 +16,11 @@ async function requestJSON(path, payload) {
 
   if (!response.ok) {
     const message = responseBody?.error || '请求失败，请稍后再试。';
-    throw new Error(message);
+    const error = new Error(message);
+    error.status = response.status;
+    error.retryAfter = responseBody?.retryAfter;
+    error.limitType = responseBody?.limitType;
+    throw error;
   }
 
   return responseBody;
