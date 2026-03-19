@@ -6,6 +6,7 @@ import {
   parseHashQuery,
   resultProfiles,
 } from '../utils/direction-quiz.js';
+import { trackEvent } from '../utils/analytics.js';
 
 export function renderShare(container) {
   const query = parseHashQuery();
@@ -54,4 +55,27 @@ export function renderShare(container) {
       </div>
     </div>
   `;
+
+  const testLink = container.querySelector('a[href="#/test"]');
+  testLink?.addEventListener('click', () => {
+    void trackEvent('share_cta_clicked', {
+      page: 'share',
+      payload: {
+        target: 'test',
+        profileId: profile.id,
+      },
+    });
+  });
+
+  const generateLink = container.querySelector(`a[href="${generateHref}"]`);
+  generateLink?.addEventListener('click', () => {
+    void trackEvent('share_cta_clicked', {
+      page: 'share',
+      payload: {
+        target: 'generate',
+        profileId: profile.id,
+        acceptanceId: acceptance.id,
+      },
+    });
+  });
 }

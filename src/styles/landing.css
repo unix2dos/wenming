@@ -82,7 +82,8 @@
 }
 
 .preview-card,
-.landing-direct-entry {
+.landing-direct-entry,
+.landing-compare-offer {
   background: rgba(255, 255, 255, 0.84);
   border: 1px solid rgba(226, 232, 240, 0.9);
   box-shadow: var(--shadow-md);
@@ -114,6 +115,13 @@
   gap: var(--spacing-lg);
 }
 
+.landing-compare-offer {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(240px, 0.75fr);
+  gap: var(--spacing-xl);
+  align-items: stretch;
+}
+
 .landing-direct-copy {
   display: grid;
   gap: var(--spacing-sm);
@@ -123,13 +131,74 @@
   color: var(--color-yanhui);
 }
 
+.landing-compare-copy {
+  display: grid;
+  gap: var(--spacing-sm);
+}
+
+.landing-offer-kicker {
+  color: var(--color-yanhui);
+}
+
+.landing-compare-copy p:last-of-type {
+  color: var(--color-yanhui);
+  line-height: 1.75;
+}
+
+.landing-compare-points {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-sm);
+}
+
+.landing-compare-points span {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(247, 243, 238, 0.8);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  color: var(--color-dai);
+  font-size: 0.92rem;
+}
+
+.landing-compare-cta-panel {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xl);
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(247, 243, 238, 0.92), rgba(255, 255, 255, 0.78));
+}
+
+.landing-compare-cta-kicker {
+  color: var(--color-yanhui);
+  font-size: 0.92rem;
+}
+
+.landing-compare-cta-title {
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  font-weight: 700;
+  color: var(--color-dai);
+}
+
+.landing-compare-cta-note {
+  color: var(--color-yanhui);
+  line-height: 1.75;
+  margin-bottom: var(--spacing-sm);
+}
+
 @media (max-width: 880px) {
   .preview-grid {
     grid-template-columns: 1fr;
   }
 
-  .landing-direct-entry {
+  .landing-direct-entry,
+  .landing-compare-offer {
     align-items: flex-start;
+    grid-template-columns: 1fr;
     flex-direction: column;
   }
 }
@@ -156,12 +225,14 @@
   }
 
   .landing-primary-action .btn,
-  .landing-direct-entry .btn {
+  .landing-direct-entry .btn,
+  .landing-compare-cta-panel .btn {
     width: 100%;
   }
 
   .preview-card,
-  .landing-direct-entry {
+  .landing-direct-entry,
+  .landing-compare-offer {
     border-radius: 24px;
     padding: var(--spacing-xl);
   }

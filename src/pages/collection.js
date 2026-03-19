@@ -1,6 +1,8 @@
 import '../styles/collection.css';
 import { getSavedNames, removeName } from '../utils/storage.js';
 import { renderRadarChart } from '../components/radar-chart.js';
+import { setPendingCompareNames } from '../utils/compare-session.js';
+import { COMPARE_REPORT_VIEW_SUMMARY_LABEL } from '../utils/compare-offer-copy.js';
 
 export function renderCollection(container) {
   let state = {
@@ -17,8 +19,8 @@ export function renderCollection(container) {
             <a href="#/" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-left" style="width:1.2em; height:1.2em;"></i> 返回首页</a>
           </div>
           <div class="empty-state">
-            <h3>藏书阁空空如也</h3>
-            <p>去推敲几个好名字，遇到心仪的便可收录于此。</p>
+            <h3>名字夹里还没有候选</h3>
+            <p>去推敲几个名字，把真正想反复比较的候选留在这里。</p>
             <div style="margin-top: 32px; display:flex; gap:16px; justify-content:center;">
               <a href="#/generate" class="btn">给宝宝取名</a>
               <a href="#/score" class="btn" style="background-color: var(--color-zhuqing);">打分已知名字</a>
@@ -39,11 +41,11 @@ export function renderCollection(container) {
             <a href="#/" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-left" style="width:1.2em; height:1.2em;"></i> 返回首页</a>
           </div>
           <div class="collection-header">
-            <h2>我的藏书阁</h2>
+            <h2>我的名字夹</h2>
             <div class="collection-actions">
               <span class="compare-hint">已选 ${selectedCount}/3 个进行对比</span>
               <button id="start-compare-btn" class="btn" style="background-color: var(--color-zhuqing);" ${canCompare ? '' : 'disabled'}>
-                横向对比
+                ${COMPARE_REPORT_VIEW_SUMMARY_LABEL}
               </button>
             </div>
           </div>
@@ -55,7 +57,7 @@ export function renderCollection(container) {
               return `
                 <div class="col-card ${isSelected ? 'selected-compare' : ''}">
                   <input type="checkbox" class="col-checkbox" data-name="${item.full_name}" ${isSelected ? 'checked' : ''}>
-                  <button class="col-remove" data-name="${item.full_name}" title="移出藏书阁">&times;</button>
+                  <button class="col-remove" data-name="${item.full_name}" title="移出名字夹">&times;</button>
                   
                   <div class="name-card-title" style="margin-top: 16px;">${item.full_name}</div>
                   <div class="name-card-meta">
@@ -100,8 +102,9 @@ export function renderCollection(container) {
 
       document.getElementById('start-compare-btn').addEventListener('click', () => {
         if (state.compareSelection.size >= 2) {
-          state.view = 'compare';
-          render();
+          const selectedNames = state.names.filter((item) => state.compareSelection.has(item.full_name));
+          setPendingCompareNames(selectedNames);
+          window.location.hash = '#/compare-report';
         }
       });
 
@@ -111,7 +114,7 @@ export function renderCollection(container) {
       container.innerHTML = `
         <div class="collection-page">
           <div class="header-back" style="margin-bottom: 24px;">
-            <button id="back-to-list" class="btn-text" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-left" style="width:1.2em; height:1.2em;"></i> 返回藏书阁列表</button>
+            <button id="back-to-list" class="btn-text" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-left" style="width:1.2em; height:1.2em;"></i> 返回名字夹</button>
           </div>
           
           <div class="compare-view">

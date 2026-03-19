@@ -18,7 +18,7 @@
 - 首页：进入起名或打分两条主路径
 - 起名页：填写姓氏、性别、风格和偏好，生成候选名字
 - 打分页：输入已有名字，查看整体分数和分项解释
-- 藏书阁：收纳已经收藏的名字
+- 名字夹：收纳已经收藏、准备比较的名字
 
 ## 适合谁
 
@@ -44,6 +44,33 @@ npm run dev
 
 ```bash
 npm run preview
+```
+
+## 事件日志与漏斗
+
+这版已经把关键行为写进 `D1` 的 `event_logs`，包括：
+- `share_clicked`
+- `summary_report_opened`
+- `upgrade_clicked`
+- `payment_completed`
+
+如果只是排查 Worker 报错，可以直接看：
+
+```bash
+npx wrangler tail
+```
+
+如果要看“分享 -> 打开摘要 -> 点击升级 -> 支付成功”这条漏斗，可以直接运行：
+
+```bash
+npm run analytics:funnel:local
+npm run analytics:funnel:remote
+```
+
+默认统计最近 `7` 天，也可以自定义：
+
+```bash
+npm run analytics:funnel:remote -- --days 14
 ```
 
 ## 自动部署

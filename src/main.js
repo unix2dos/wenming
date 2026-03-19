@@ -6,6 +6,7 @@ import { renderGeneration } from './pages/generation.js';
 import { renderCollection } from './pages/collection.js';
 import { renderTest } from './pages/quiz-page.js';
 import { renderShare } from './pages/share.js';
+import { renderCompareReport } from './pages/compare-report.js';
 
 const app = document.getElementById('app');
 
@@ -26,6 +27,8 @@ function router() {
     renderTest(app);
   } else if (route === '#/share') {
     renderShare(app);
+  } else if (route === '#/compare-report') {
+    renderCompareReport(app);
   } else {
     // 404 fallback to landing
     window.location.hash = '#/';

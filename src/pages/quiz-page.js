@@ -5,6 +5,7 @@ import {
   encodeShareState,
   quizQuestions,
 } from '../utils/direction-quiz.js';
+import { trackEvent } from '../utils/analytics.js';
 
 function buildShareUrl(result) {
   const query = encodeShareState({
@@ -79,6 +80,13 @@ export function renderTest(container) {
 
         if (state.currentIndex === quizQuestions.length - 1) {
           state.result = calculateQuizResult(state.answers);
+          void trackEvent('quiz_completed', {
+            page: 'test-result',
+            payload: {
+              profileId: state.result.profile.id,
+              acceptanceId: state.result.acceptance.id,
+            },
+          });
           renderResult();
           return;
         }
@@ -156,6 +164,13 @@ export function renderTest(container) {
     document.getElementById('share-result').addEventListener('click', async () => {
       const notice = document.getElementById('share-notice');
       notice.textContent = '正在准备分享链接...';
+      void trackEvent('share_clicked', {
+        page: 'test-result',
+        payload: {
+          shareType: 'quiz_result',
+          profileId: state.result.profile.id,
+        },
+      });
 
       try {
         notice.textContent = await shareResult(state.result);
@@ -166,6 +181,17 @@ export function renderTest(container) {
         }
         notice.textContent = '分享失败，请稍后重试。';
       }
+    });
+
+    const generateLink = container.querySelector(`a[href="${generateHref}"]`);
+    generateLink?.addEventListener('click', () => {
+      void trackEvent('quiz_generate_clicked', {
+        page: 'test-result',
+        payload: {
+          profileId: profile.id,
+          acceptanceId: acceptance.id,
+        },
+      });
     });
   }
 

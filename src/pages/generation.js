@@ -6,6 +6,15 @@ import { saveName, removeName, isNameSaved } from '../utils/storage.js';
 import { exportElementAsPDF } from '../utils/export.js';
 import { formatApiErrorMessage } from '../utils/api-error.js';
 import { getAcceptanceProfile, getGenerationPreset, parseHashQuery } from '../utils/direction-quiz.js';
+import { setPendingCompareNames } from '../utils/compare-session.js';
+import {
+  COMPARE_REPORT_FREE_SUMMARY,
+  COMPARE_REPORT_PICK_CANDIDATES_LABEL,
+  COMPARE_REPORT_POINTS,
+  COMPARE_REPORT_PRODUCT_NAME,
+  COMPARE_REPORT_UPSELL_NAME,
+  COMPARE_REPORT_VIEW_SUMMARY_LABEL,
+} from '../utils/compare-offer-copy.js';
 
 function escapeAttr(value = '') {
   return value
@@ -13,6 +22,36 @@ function escapeAttr(value = '') {
     .replaceAll('"', '&quot;')
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;');
+}
+
+export function selectTopGenerationCandidates(results = [], limit = 3) {
+  if (!Array.isArray(results) || limit <= 0) {
+    return [];
+  }
+
+  return [...results]
+    .sort((left, right) => (right.score ?? 0) - (left.score ?? 0))
+    .slice(0, limit);
+}
+
+export function summarizeGenerationResults(results = []) {
+  if (!Array.isArray(results) || results.length === 0) {
+    return {
+      leadName: '',
+      leadScore: null,
+      headline: '先收 2 到 3 个名字，再做最后比较。',
+      summary: '先挑出真正想反复比较的候选，再进入完整比较报告。',
+    };
+  }
+
+  const [lead] = selectTopGenerationCandidates(results, 1);
+
+  return {
+    leadName: lead.full_name,
+    leadScore: lead.score ?? null,
+    headline: '先收 2 到 3 个名字，再做最后比较。',
+    summary: `${lead.full_name} 目前最靠前，${lead.score}分，是这一轮里最值得先留下来的候选。`,
+  };
 }
 
 export function renderGeneration(container) {
@@ -50,7 +89,7 @@ export function renderGeneration(container) {
           <a href="#/" class="text-link">返回首页</a>
           <div class="generation-topbar-links">
             <a href="#/test" class="text-link">测命名方向</a>
-            <a href="#/collection" class="text-link">我的藏书阁</a>
+            <a href="#/collection" class="text-link">我的名字夹</a>
           </div>
         </div>
 
@@ -240,7 +279,7 @@ export function renderGeneration(container) {
 
     renderLoading(
       document.getElementById('loading-root'),
-      preset ? '沿着你们测出的方向研墨起名…' : 'AI 正在研墨… 取山野之息，酝文人之雅'
+      preset ? '沿着你们测出的方向推敲候选名…' : 'AI 正在推敲候选名…'
     );
 
     document.getElementById('cancel-btn').addEventListener('click', () => {
@@ -250,20 +289,55 @@ export function renderGeneration(container) {
   }
 
   function renderResultState() {
+    const overview = summarizeGenerationResults(state.data);
+    const compareCandidates = selectTopGenerationCandidates(state.data);
+    const comparePreview = compareCandidates.map((item) => item.full_name).join(' / ');
+
     container.innerHTML = `
       <div class="generation-page">
         <div class="header-back generation-topbar">
           <button id="re-gen-btn" class="btn-text text-link">换一批 / 重新起名</button>
           <div class="generation-topbar-links">
             <a href="#/test" class="text-link">重测方向</a>
-            <a href="#/collection" class="text-link">我的藏书阁</a>
+            <a href="#/collection" class="text-link">我的名字夹</a>
           </div>
         </div>
 
         <div class="results-section">
+          <section class="generation-results-overview">
+            <p class="generation-results-kicker">本轮结论</p>
+            <h2>${overview.headline}</h2>
+            <p class="generation-results-summary">${overview.summary}</p>
+            <div class="generation-results-actions">
+              ${compareCandidates.length >= 2 ? `
+                <button id="top-generation-compare-btn" class="btn">${COMPARE_REPORT_VIEW_SUMMARY_LABEL}</button>
+              ` : ''}
+              <a href="#/collection" class="btn btn-secondary">${COMPARE_REPORT_PICK_CANDIDATES_LABEL}</a>
+            </div>
+          </section>
+
+          ${compareCandidates.length >= 2 ? `
+            <section class="generation-compare-offer">
+              <div class="generation-compare-copy">
+                <p class="generation-results-kicker">${COMPARE_REPORT_UPSELL_NAME}</p>
+                <h3>${COMPARE_REPORT_FREE_SUMMARY}，再决定要不要升级${COMPARE_REPORT_PRODUCT_NAME}</h3>
+                <p>${comparePreview} 这几个名字已经值得进入最后一轮比较了。先把摘要发给家人看一轮，再决定要不要继续看完整判断。</p>
+                <div class="generation-compare-points">
+                  ${COMPARE_REPORT_POINTS.map((point) => `<span>${point}</span>`).join('')}
+                </div>
+              </div>
+              <div class="generation-compare-cta-panel">
+                <div class="generation-compare-cta-kicker">先把这一轮候选拉进去</div>
+                <div class="generation-compare-cta-title">${COMPARE_REPORT_FREE_SUMMARY}</div>
+                <div class="generation-compare-cta-note">摘要会先告诉你当前更偏向哪个名字，再决定要不要升级${COMPARE_REPORT_PRODUCT_NAME}。</div>
+                <button id="generation-compare-offer-btn" class="btn">${COMPARE_REPORT_VIEW_SUMMARY_LABEL}</button>
+              </div>
+            </section>
+          ` : ''}
+
           <div class="results-header">
             <h2>${preset ? `沿着${preset.profile.type}推敲出的候选名` : '为您推敲的候选名'}</h2>
-            <p class="results-subtitle">点击卡片查看雷达分布与收藏、导出动作。</p>
+            <p class="results-subtitle">先看结论，再点开单个名字查看成立理由、维度分布与收藏动作。</p>
           </div>
 
           <div class="results-grid">
@@ -288,6 +362,16 @@ export function renderGeneration(container) {
         </div>
       </div>
     `;
+
+    document.getElementById('top-generation-compare-btn')?.addEventListener('click', () => {
+      setPendingCompareNames(compareCandidates);
+      window.location.hash = '#/compare-report';
+    });
+
+    document.getElementById('generation-compare-offer-btn')?.addEventListener('click', () => {
+      setPendingCompareNames(compareCandidates);
+      window.location.hash = '#/compare-report';
+    });
 
     document.getElementById('re-gen-btn').addEventListener('click', () => {
       state.step = 'input';
@@ -317,7 +401,7 @@ export function renderGeneration(container) {
     }
   }
 
-  function openDetailModal(nameData) {
+function openDetailModal(nameData) {
     const modal = document.getElementById('detail-modal');
     const content = document.getElementById('detail-content');
     const routeClass = nameData.route === '大雅' ? 'da-ya' : 'da-su';
@@ -332,20 +416,21 @@ export function renderGeneration(container) {
             <div class="total-score modal-score">${nameData.score}<span> / 100</span></div>
             <span class="pill ${routeClass}">${nameData.route}</span>
           </div>
+          <div class="generation-modal-section-label">综合判断</div>
           <div class="overall-comment modal-comment">"${nameData.one_liner}"</div>
         </div>
         <div class="radar-container generation-modal-radar">
           <canvas id="modal-radar-canvas" style="width: 250px; height: 250px; margin: 0 auto; display:block;"></canvas>
         </div>
-        <div class="generation-modal-note">这里展示的是候选名的快速雷达概览，方便你们先做第一轮筛选。</div>
+        <div class="generation-modal-note">这里先给你一轮专业摘要，用来判断这个名字是否值得进入最终比较。</div>
       </div>
 
       <div class="modal-actions no-export generation-modal-actions">
         <button id="modal-save-btn" class="btn" style="background-color: ${saved ? '#A0AEC0' : 'var(--color-ouhe)'};">
-          ${saved ? '已在藏书阁' : '收进藏书阁'}
+          ${saved ? '已在名字夹' : '加入名字夹'}
         </button>
         <button id="modal-export-btn" class="btn" style="background-color: var(--color-zhuqing);">
-          导出为解读卷宗
+          导出结果简报
         </button>
       </div>
     `;
@@ -370,11 +455,11 @@ export function renderGeneration(container) {
     saveBtn.addEventListener('click', () => {
       if (isNameSaved(nameData.full_name)) {
         removeName(nameData.full_name);
-        saveBtn.textContent = '收进藏书阁';
+        saveBtn.textContent = '加入名字夹';
         saveBtn.style.backgroundColor = 'var(--color-ouhe)';
       } else {
         saveName(nameData);
-        saveBtn.textContent = '已在藏书阁';
+        saveBtn.textContent = '已在名字夹';
         saveBtn.style.backgroundColor = '#A0AEC0';
       }
     });
@@ -384,11 +469,11 @@ export function renderGeneration(container) {
       exportBtn.textContent = '生成中...';
       exportBtn.disabled = true;
       try {
-        await exportElementAsPDF('detail-content', `${nameData.full_name}_新文人起名简报.pdf`);
+        await exportElementAsPDF('detail-content', `${nameData.full_name}_名字结果简报.pdf`);
       } catch {
         alert('导出失败');
       }
-      exportBtn.textContent = '导出为解读卷宗';
+      exportBtn.textContent = '导出结果简报';
       exportBtn.disabled = false;
     });
   }

@@ -11,6 +11,16 @@
       }
     ]
   },
+  "d1_databases": [
+    {
+      // Replace with the real database_id after running:
+      // npx wrangler d1 create wenming
+      "binding": "DB",
+      "database_name": "wenming",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
   "migrations": [
     {
       "tag": "v2",

@@ -1,4 +1,4 @@
-export async function exportElementAsPDF(elementId, filename = '名字解析卷宗.pdf') {
+export async function exportElementAsPDF(elementId, filename = '名字结果简报.pdf') {
   const element = document.getElementById(elementId);
   if (!element) {
     throw new Error(`Export target not found: ${elementId}`);

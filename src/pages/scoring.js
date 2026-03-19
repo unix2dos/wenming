@@ -2,9 +2,43 @@ import '../styles/scoring.css';
 import { scoreName } from '../api/openrouter.js';
 import { renderLoading } from '../components/loading.js';
 import { renderRadarChart } from '../components/radar-chart.js';
-import { saveName, removeName, isNameSaved } from '../utils/storage.js';
+import { saveName, removeName, isNameSaved, getSavedNames } from '../utils/storage.js';
 import { exportElementAsPDF } from '../utils/export.js';
 import { formatApiErrorMessage } from '../utils/api-error.js';
+import { setPendingCompareNames } from '../utils/compare-session.js';
+import {
+  COMPARE_REPORT_PICK_CANDIDATES_LABEL,
+  COMPARE_REPORT_POINTS,
+  COMPARE_REPORT_PRODUCT_NAME,
+  COMPARE_REPORT_UPGRADE_RESULTS,
+  COMPARE_REPORT_UPSELL_NAME,
+  COMPARE_REPORT_VIEW_SUMMARY_LABEL,
+} from '../utils/compare-offer-copy.js';
+
+export function buildScoreCompareCandidates(currentScoreResult, savedNames = [], limit = 3) {
+  const candidates = [];
+  const seen = new Set();
+
+  const appendCandidate = (item, fallbackComment) => {
+    if (!item?.full_name || seen.has(item.full_name) || candidates.length >= limit) {
+      return;
+    }
+
+    seen.add(item.full_name);
+    candidates.push({
+      full_name: item.full_name,
+      score: item.score ?? item.total_score ?? null,
+      route: item.route ?? '',
+      one_liner: item.one_liner ?? item.overall_comment ?? fallbackComment ?? '',
+      dimensions: item.dimensions ?? null,
+    });
+  };
+
+  appendCandidate(currentScoreResult, currentScoreResult?.overall_comment);
+  savedNames.forEach((item) => appendCandidate(item));
+
+  return candidates;
+}
 
 export function renderScoring(container) {
   let state = {
@@ -19,7 +53,7 @@ export function renderScoring(container) {
         <div class="scoring-page">
           <div class="header-back" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
             <a href="#/" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-left" style="width:1.2em; height:1.2em;"></i> 返回首页</a>
-            <a href="#/collection" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="library" style="width:1.2em; height:1.2em;"></i> 我的藏书阁</a>
+            <a href="#/collection" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="library" style="width:1.2em; height:1.2em;"></i> 我的名字夹</a>
           </div>
           <div class="input-section">
             <h2>看看名字好不好</h2>
@@ -70,12 +104,14 @@ export function renderScoring(container) {
       const d = state.data;
       const routeClass = d.route === '大雅' ? 'da-ya' : 'da-su';
       const isSaved = isNameSaved(d.full_name);
+      const compareCandidates = buildScoreCompareCandidates(d, getSavedNames());
+      const canCompare = compareCandidates.length >= 2;
       
       container.innerHTML = `
         <div class="scoring-page">
           <div class="header-back" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
             <button id="re-score-btn" class="btn-text" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-right" style="width:1.2em; height:1.2em;"></i> 测下一个名字</button>
-            <a href="#/collection" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="library" style="width:1.2em; height:1.2em;"></i> 我的藏书阁</a>
+            <a href="#/collection" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="library" style="width:1.2em; height:1.2em;"></i> 我的名字夹</a>
           </div>
           
           <div class="result-card" id="scoring-result-card">
@@ -86,7 +122,9 @@ export function renderScoring(container) {
                   <div class="total-score">${d.total_score}<span> / 100</span></div>
                   <span class="pill ${routeClass}">${d.route}</span>
                 </div>
+                <div class="result-section-label">综合判断</div>
                 <div class="route-reason">${d.route_reason}</div>
+                <div class="result-conclusion-chip">${d.total_score >= 88 ? '适合作为正式候选' : d.total_score >= 75 ? '值得继续比较' : '建议谨慎采用'}</div>
                 <div class="overall-comment">"${d.overall_comment}"</div>
               </div>
 
@@ -95,22 +133,43 @@ export function renderScoring(container) {
               </div>
 
               <div class="dimensions-list">
+                <h3 class="result-section-label">维度拆解</h3>
                 ${renderDimItem('音韵', d.dimensions.sound)}
                 ${renderDimItem('字形', d.dimensions.shape)}
                 ${renderDimItem('意境', d.dimensions.style)}
                 ${renderDimItem('风骨', d.dimensions.classic)}
                 ${renderDimItem('实用', d.dimensions.practical)}
               </div>
+
+              ${canCompare ? `
+                <section class="score-compare-offer">
+                  <div class="score-compare-copy">
+                    <p class="score-compare-kicker">${COMPARE_REPORT_UPSELL_NAME}</p>
+                    <h3>${COMPARE_REPORT_UPGRADE_RESULTS}</h3>
+                    <p>适合已经有 2 到 3 个候选名、准备做最后决策的时候打开。先去看比较摘要，再决定要不要继续升级${COMPARE_REPORT_PRODUCT_NAME}。</p>
+                  </div>
+                  <div class="score-compare-points">
+                    ${COMPARE_REPORT_POINTS.map((point) => `<span>${point}</span>`).join('')}
+                  </div>
+                </section>
+              ` : ''}
             </div>
 
             <!-- Actions -->
-            <div class="modal-actions no-export" style="display:flex; justify-content:center; gap:16px; margin-top:48px;">
+            <div class="modal-actions no-export" style="display:flex; justify-content:center; gap:16px; margin-top:48px; flex-wrap: wrap;">
               <button id="score-save-btn" class="btn" style="background-color: ${isSaved ? '#A0AEC0' : 'var(--color-ouhe)'};">
-                ${isSaved ? '已在藏书阁' : '收进藏书阁'}
+                ${isSaved ? '已在名字夹' : '加入名字夹'}
               </button>
               <button id="score-export-btn" class="btn" style="background-color: var(--color-zhuqing);">
-                导出解读报告
+                导出结果简报
               </button>
+              ${canCompare ? `
+                <button id="score-compare-btn" class="btn btn-secondary">
+                  ${COMPARE_REPORT_VIEW_SUMMARY_LABEL}
+                </button>
+              ` : `
+                <a href="#/collection" class="btn btn-secondary">${COMPARE_REPORT_PICK_CANDIDATES_LABEL}</a>
+              `}
             </div>
 
           </div>
@@ -141,11 +200,11 @@ export function renderScoring(container) {
 
         if (isNameSaved(d.full_name)) {
           removeName(d.full_name);
-          saveBtn.textContent = '收进藏书阁';
+          saveBtn.textContent = '加入名字夹';
           saveBtn.style.backgroundColor = 'var(--color-ouhe)';
         } else {
           saveName(savePayload);
-          saveBtn.textContent = '已在藏书阁';
+          saveBtn.textContent = '已在名字夹';
           saveBtn.style.backgroundColor = '#A0AEC0';
         }
       });
@@ -156,12 +215,17 @@ export function renderScoring(container) {
         exportBtn.disabled = true;
         try {
           // Export the entire card div
-          await exportElementAsPDF('scoring-result-card', `${d.full_name}_新文人起名简述.pdf`);
+          await exportElementAsPDF('scoring-result-card', `${d.full_name}_名字结果简报.pdf`);
         } catch (e) {
           alert("导出失败");
         }
-        exportBtn.textContent = '导出解读报告';
+        exportBtn.textContent = '导出结果简报';
         exportBtn.disabled = false;
+      });
+
+      document.getElementById('score-compare-btn')?.addEventListener('click', () => {
+        setPendingCompareNames(compareCandidates);
+        window.location.hash = '#/compare-report';
       });
     }
 
