@@ -621,8 +621,14 @@ async function storeFullReport(env, reportId, fullReport) {
 }
 
 function ensureLemonSqueezyEnv(env) {
-  if (!env.LEMON_SQUEEZY_API_KEY || !env.LEMON_SQUEEZY_STORE_ID || !env.LEMON_SQUEEZY_VARIANT_ID) {
-    throw new Error('Lemon Squeezy 配置未完成。');
+  const missing = [
+    'LEMON_SQUEEZY_API_KEY',
+    'LEMON_SQUEEZY_STORE_ID',
+    'LEMON_SQUEEZY_VARIANT_ID',
+  ].filter((key) => !env[key]);
+
+  if (missing.length > 0) {
+    throw new Error(`Lemon Squeezy 配置未完成：缺少 ${missing.join('、')}。`);
   }
 }
 
@@ -888,7 +894,7 @@ async function handleCheckoutCreate(request, env, fetchImpl) {
 
 async function handleLemonSqueezyWebhook(request, env) {
   if (!env.LEMON_SQUEEZY_WEBHOOK_SECRET) {
-    return jsonResponse({ error: 'Lemon Squeezy webhook secret 未配置。' }, { status: 500 });
+    return jsonResponse({ error: 'Lemon Squeezy webhook secret 未配置：缺少 LEMON_SQUEEZY_WEBHOOK_SECRET。' }, { status: 500 });
   }
 
   const bodyText = await request.text();

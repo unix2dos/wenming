@@ -502,6 +502,49 @@ test('checkout endpoint creates a Lemon Squeezy checkout and persists an order d
   assert.ok(db.statements.some((item) => item.params[3] === 'checkout_created'));
 });
 
+test('checkout endpoint reports which Lemon Squeezy variables are missing', async () => {
+  const db = createD1Spy();
+  const handler = createWorkerHandler(async () => createCompareSummaryFetchResponse());
+  const summaryResponse = await handler.fetch(new Request('https://example.com/api/report/summary', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-wenming-session-id': 'session-missing-ls',
+    },
+    body: JSON.stringify({
+      selectedNames: [
+        { full_name: '林见山', route: '大雅', score: 92, one_liner: '轻静耐看，有留白。' },
+        { full_name: '林春生', route: '大俗', score: 89, one_liner: '自然有生机，记忆点强。' },
+      ],
+      sourceType: 'collection',
+    }),
+  }), {
+    DB: db,
+    OPENROUTER_API_KEY: 'test-key',
+  });
+  const summaryBody = await summaryResponse.json();
+
+  const response = await handler.fetch(new Request('https://example.com/api/checkout/compare-report', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-wenming-session-id': 'session-missing-ls',
+    },
+    body: JSON.stringify({
+      reportId: summaryBody.reportId,
+    }),
+  }), {
+    DB: db,
+    OPENROUTER_API_KEY: 'test-key',
+    LEMON_SQUEEZY_API_KEY: 'ls-key',
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 500);
+  assert.match(body.error, /LEMON_SQUEEZY_STORE_ID/);
+  assert.match(body.error, /LEMON_SQUEEZY_VARIANT_ID/);
+});
+
 test('webhook endpoint validates signature and marks a report as paid', async () => {
   const db = createD1Spy();
   const handler = createWorkerHandler(createSequentialFetch(
@@ -584,6 +627,21 @@ test('webhook endpoint validates signature and marks a report as paid', async ()
   assert.equal(body.ok, true);
   assert.ok(db.statements.some((item) => item.sql.includes('UPDATE payment_orders')));
   assert.ok(db.statements.some((item) => item.params[3] === 'payment_completed'));
+});
+
+test('webhook endpoint reports a missing Lemon Squeezy signing secret clearly', async () => {
+  const handler = createWorkerHandler();
+  const response = await handler.fetch(new Request('https://example.com/api/webhooks/lemonsqueezy', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({}),
+  }), {});
+  const body = await response.json();
+
+  assert.equal(response.status, 500);
+  assert.match(body.error, /LEMON_SQUEEZY_WEBHOOK_SECRET/);
 });
 
 test('full report endpoint returns the paid report after payment is confirmed', async () => {
