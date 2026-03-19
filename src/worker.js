@@ -1,6 +1,7 @@
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const LEMON_SQUEEZY_API_URL = 'https://api.lemonsqueezy.com/v1/checkouts';
 const OPENROUTER_MODEL = 'google/gemini-2.5-flash';
+const OPENROUTER_PARSE_MAX_ATTEMPTS = 2;
 const TEN_MINUTES_MS = 10 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
 const BURST_RETRY_AFTER_SECONDS = 60;
@@ -400,31 +401,47 @@ async function fetchOpenRouter(promptPayload, env, fetchImpl) {
     throw new Error('Cloudflare secret OPENROUTER_API_KEY 未配置。');
   }
 
-  const response = await fetchImpl(OPENROUTER_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: OPENROUTER_MODEL,
-      temperature: 0,
-      messages: [
-        { role: 'system', content: promptPayload.systemPrompt },
-        { role: 'user', content: promptPayload.userPrompt },
-      ],
-      response_format: { type: 'json_object' },
-    }),
-  });
+  let lastError = null;
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || 'OpenRouter 请求失败。');
+  for (let attempt = 0; attempt < OPENROUTER_PARSE_MAX_ATTEMPTS; attempt += 1) {
+    const response = await fetchImpl(OPENROUTER_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: OPENROUTER_MODEL,
+        temperature: 0,
+        messages: [
+          { role: 'system', content: promptPayload.systemPrompt },
+          { role: 'user', content: promptPayload.userPrompt },
+        ],
+        response_format: { type: 'json_object' },
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'OpenRouter 请求失败。');
+    }
+
+    try {
+      const data = await response.json();
+      const content = data?.choices?.[0]?.message?.content;
+      return JSON.parse(extractJsonContent(content));
+    } catch (error) {
+      lastError = error;
+      const isLastAttempt = attempt === OPENROUTER_PARSE_MAX_ATTEMPTS - 1;
+      if (!(error instanceof SyntaxError) || isLastAttempt) {
+        break;
+      }
+    }
   }
 
-  const data = await response.json();
-  const content = data?.choices?.[0]?.message?.content;
-  return JSON.parse(extractJsonContent(content));
+  throw lastError instanceof Error
+    ? new Error(`OpenRouter JSON 解析失败：${lastError.message}`)
+    : new Error('OpenRouter JSON 解析失败。');
 }
 
 function validateEventPayload(payload) {

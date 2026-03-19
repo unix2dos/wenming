@@ -198,6 +198,23 @@ function createCompareSummaryFetchResponse() {
   };
 }
 
+function createMalformedCompareSummaryFetchResponse() {
+  return {
+    ok: true,
+    async json() {
+      return {
+        choices: [
+          {
+            message: {
+              content: '{"recommendation":{"chosen_name":"林见山","headline":"坏 JSON","summary":"少了结束引号}}',
+            },
+          },
+        ],
+      };
+    },
+  };
+}
+
 function createCompareFullFetchResponse() {
   return {
     ok: true,
@@ -385,6 +402,47 @@ test('report summary endpoint returns a persisted summary report for selected na
   assert.match(db.statements[0].sql, /INSERT INTO report_requests/);
   assert.match(db.statements[1].sql, /INSERT INTO event_logs/);
   assert.equal(db.statements[1].params[3], 'compare_started');
+});
+
+test('report summary endpoint retries once when OpenRouter returns malformed JSON content', async () => {
+  const db = createD1Spy();
+  const handler = createWorkerHandler(createSequentialFetch(
+    createMalformedCompareSummaryFetchResponse(),
+    createCompareSummaryFetchResponse(),
+  ));
+  const request = new Request('https://example.com/api/report/summary', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-wenming-session-id': 'session-compare-retry',
+    },
+    body: JSON.stringify({
+      selectedNames: [
+        {
+          full_name: '林见山',
+          route: '大雅',
+          score: 92,
+          one_liner: '轻静耐看，有留白。',
+        },
+        {
+          full_name: '林春生',
+          route: '大俗',
+          score: 89,
+          one_liner: '自然有生机，记忆点强。',
+        },
+      ],
+      sourceType: 'collection',
+    }),
+  });
+
+  const response = await handler.fetch(request, {
+    DB: db,
+    OPENROUTER_API_KEY: 'test-key',
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.equal(body.summary.recommendation.chosen_name, '林见山');
 });
 
 test('report summary endpoint rejects compare requests outside the 2-3 name range', async () => {
