@@ -23,13 +23,20 @@ export function renderLanding(container) {
       </header>
 
       <section class="landing-hero">
-        <div class="landing-hero-copy">
-          <h1 class="landing-title">先测方向，再起名</h1>
-          <p class="landing-subtitle">用 30 秒先找到你们更合拍的命名方向。</p>
+        <div class="landing-hero-content">
+          <div class="landing-hero-copy">
+            <h1 class="landing-title">先测方向，再起名</h1>
+            <p class="landing-subtitle">用 30 秒先找到你们更合拍的命名方向。</p>
+          </div>
+
+          <div class="landing-primary-action">
+            <a href="#/test" class="btn">开始测试</a>
+          </div>
         </div>
 
-        <div class="landing-primary-action">
-          <a href="#/test" class="btn">开始测试</a>
+        <div class="scroll-indicator" onclick="document.querySelector('.landing-preview-section').scrollIntoView({behavior: 'smooth'})">
+          <span>向下滚动查看原型</span>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
         </div>
       </section>
 

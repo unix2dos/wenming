@@ -32,11 +32,56 @@
 .landing-hero {
   max-width: 1040px;
   margin: 0 auto var(--spacing-4xl);
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 240px);
+  padding-top: clamp(72px, 10vh, 120px);
+  position: relative;
+}
+
+.landing-hero-content {
   display: grid;
   align-content: start;
   gap: var(--spacing-xl);
-  min-height: calc(100vh - 240px);
-  padding-top: clamp(72px, 10vh, 120px);
+  flex-grow: 1;
+}
+
+.scroll-indicator {
+  position: absolute;
+  bottom: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+  color: var(--color-yanhui);
+  cursor: pointer;
+  animation: bounce 2s infinite;
+  opacity: 0.7;
+  transition: all var(--transition-fast);
+}
+
+.scroll-indicator:hover {
+  opacity: 1;
+  color: var(--color-dai);
+}
+
+.scroll-indicator span {
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translate(-50%, 0);
+  }
+  40% {
+    transform: translate(-50%, -8px);
+  }
+  60% {
+    transform: translate(-50%, -4px);
+  }
 }
 
 .landing-hero-copy {
