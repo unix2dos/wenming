@@ -269,24 +269,15 @@ function renderSummaryState(container, report, selectedNames, options = {}) {
         <section class="compare-report-card compare-report-upgrade">
           <div class="compare-report-upgrade-head">
             <div class="compare-report-upgrade-intro">
-              <p class="compare-report-kicker">${COMPARE_REPORT_UPGRADE_LABEL}</p>
+              <p class="compare-report-kicker">限免开放</p>
               <h2>${COMPARE_REPORT_PRODUCT_NAME}</h2>
-              <p class="compare-report-upgrade-context">如果这轮已经接近拍板，再升级${COMPARE_REPORT_PRODUCT_NAME}会更合适。</p>
-            </div>
-            <div class="compare-report-price-block">
-              <span class="compare-report-price-label">看完摘要再决定</span>
-              <div class="compare-report-price-inline">
-                <span class="compare-report-price">¥19.9</span>
-                <span class="compare-report-price-note">一次解锁</span>
-              </div>
+              <p class="compare-report-upgrade-context">完整报告包含横向排序、推荐结论与逐名拆解，现在可以直接查看。</p>
             </div>
           </div>
-          <p class="compare-report-upgrade-copy">${COMPARE_REPORT_UPGRADE_RESULTS}</p>
           <div class="compare-report-upgrade-list">
             ${COMPARE_REPORT_POINTS.map((point) => `<span>${point}</span>`).join('')}
           </div>
-          <p>${upgradeTeaser}</p>
-          <button id="upgrade-compare-report" class="btn">${COMPARE_REPORT_UPGRADE_LABEL}</button>
+          <button id="upgrade-compare-report" class="btn">查看完整报告</button>
         </section>
       </div>
     </div>
@@ -339,31 +330,8 @@ function renderSummaryState(container, report, selectedNames, options = {}) {
       },
     });
 
-    try {
-      const sessionId = getOrCreateSessionId();
-      const response = await fetch('/api/checkout/compare-report', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-wenming-session-id': sessionId,
-        },
-        body: JSON.stringify({
-          reportId: report.reportId,
-        }),
-      });
-      const body = await response.json();
-      if (!response.ok) {
-        throw new Error(body?.error || '支付跳转创建失败。');
-      }
-
-      if (window.location?.assign) {
-        window.location.assign(body.checkoutUrl);
-      } else {
-        window.location.href = body.checkoutUrl;
-      }
-    } catch (error) {
-      window.alert(error instanceof Error ? error.message : '支付跳转创建失败。');
-    }
+    window.location.hash = `#/compare-report?report_id=${encodeURIComponent(report.reportId)}&paid=1`;
+    window.location.reload();
   });
 }
 

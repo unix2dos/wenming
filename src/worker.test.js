@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createHmac } from 'node:crypto';
+
 
 import { createWorkerHandler } from './worker.js';
 
@@ -250,25 +250,7 @@ function createCompareFullFetchResponse() {
   };
 }
 
-function createCheckoutFetchResponse() {
-  return {
-    ok: true,
-    async json() {
-      return {
-        data: {
-          id: 'checkout-123',
-          attributes: {
-            url: 'https://checkout.test/abc',
-            preview: {
-              total: 1999,
-              currency: 'USD',
-            },
-          },
-        },
-      };
-    },
-  };
-}
+
 
 function createSequentialFetch(...responses) {
   let index = 0;
@@ -536,205 +518,10 @@ test('report summary GET endpoint returns a persisted summary by report id', asy
   assert.equal(body.summary.recommendation.chosen_name, '林见山');
 });
 
-test('checkout endpoint creates a Lemon Squeezy checkout and persists an order draft', async () => {
+test('full report endpoint returns a free report without payment (限免)', async () => {
   const db = createD1Spy();
   const handler = createWorkerHandler(createSequentialFetch(
     createCompareSummaryFetchResponse(),
-    createCheckoutFetchResponse(),
-  ));
-  const summaryResponse = await handler.fetch(new Request('https://example.com/api/report/summary', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-wenming-session-id': 'session-checkout',
-    },
-    body: JSON.stringify({
-      selectedNames: [
-        { full_name: '林见山', route: '大雅', score: 92, one_liner: '轻静耐看，有留白。' },
-        { full_name: '林春生', route: '大俗', score: 89, one_liner: '自然有生机，记忆点强。' },
-      ],
-      sourceType: 'collection',
-    }),
-  }), {
-    DB: db,
-    OPENROUTER_API_KEY: 'test-key',
-    LEMON_SQUEEZY_API_KEY: 'ls-key',
-    LEMON_SQUEEZY_STORE_ID: '10',
-    LEMON_SQUEEZY_VARIANT_ID: '20',
-  });
-  const summaryBody = await summaryResponse.json();
-
-  const response = await handler.fetch(new Request('https://example.com/api/checkout/compare-report', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-wenming-session-id': 'session-checkout',
-    },
-    body: JSON.stringify({
-      reportId: summaryBody.reportId,
-    }),
-  }), {
-    DB: db,
-    OPENROUTER_API_KEY: 'test-key',
-    LEMON_SQUEEZY_API_KEY: 'ls-key',
-    LEMON_SQUEEZY_STORE_ID: '10',
-    LEMON_SQUEEZY_VARIANT_ID: '20',
-  });
-  const body = await response.json();
-
-  assert.equal(response.status, 200);
-  assert.equal(body.checkoutUrl, 'https://checkout.test/abc');
-  assert.ok(db.statements.some((item) => item.sql.includes('INSERT INTO payment_orders')));
-  assert.ok(db.statements.some((item) => item.params[3] === 'checkout_created'));
-});
-
-test('checkout endpoint reports which Lemon Squeezy variables are missing', async () => {
-  const db = createD1Spy();
-  const handler = createWorkerHandler(async () => createCompareSummaryFetchResponse());
-  const summaryResponse = await handler.fetch(new Request('https://example.com/api/report/summary', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-wenming-session-id': 'session-missing-ls',
-    },
-    body: JSON.stringify({
-      selectedNames: [
-        { full_name: '林见山', route: '大雅', score: 92, one_liner: '轻静耐看，有留白。' },
-        { full_name: '林春生', route: '大俗', score: 89, one_liner: '自然有生机，记忆点强。' },
-      ],
-      sourceType: 'collection',
-    }),
-  }), {
-    DB: db,
-    OPENROUTER_API_KEY: 'test-key',
-  });
-  const summaryBody = await summaryResponse.json();
-
-  const response = await handler.fetch(new Request('https://example.com/api/checkout/compare-report', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-wenming-session-id': 'session-missing-ls',
-    },
-    body: JSON.stringify({
-      reportId: summaryBody.reportId,
-    }),
-  }), {
-    DB: db,
-    OPENROUTER_API_KEY: 'test-key',
-    LEMON_SQUEEZY_API_KEY: 'ls-key',
-  });
-  const body = await response.json();
-
-  assert.equal(response.status, 500);
-  assert.match(body.error, /LEMON_SQUEEZY_STORE_ID/);
-  assert.match(body.error, /LEMON_SQUEEZY_VARIANT_ID/);
-});
-
-test('webhook endpoint validates signature and marks a report as paid', async () => {
-  const db = createD1Spy();
-  const handler = createWorkerHandler(createSequentialFetch(
-    createCompareSummaryFetchResponse(),
-    createCheckoutFetchResponse(),
-  ));
-  const summaryResponse = await handler.fetch(new Request('https://example.com/api/report/summary', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-wenming-session-id': 'session-webhook',
-    },
-    body: JSON.stringify({
-      selectedNames: [
-        { full_name: '林见山', route: '大雅' },
-        { full_name: '林春生', route: '大俗' },
-      ],
-      sourceType: 'collection',
-    }),
-  }), {
-    DB: db,
-    OPENROUTER_API_KEY: 'test-key',
-    LEMON_SQUEEZY_API_KEY: 'ls-key',
-    LEMON_SQUEEZY_STORE_ID: '10',
-    LEMON_SQUEEZY_VARIANT_ID: '20',
-  });
-  const summaryBody = await summaryResponse.json();
-
-  await handler.fetch(new Request('https://example.com/api/checkout/compare-report', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-wenming-session-id': 'session-webhook',
-    },
-    body: JSON.stringify({
-      reportId: summaryBody.reportId,
-    }),
-  }), {
-    DB: db,
-    OPENROUTER_API_KEY: 'test-key',
-    LEMON_SQUEEZY_API_KEY: 'ls-key',
-    LEMON_SQUEEZY_STORE_ID: '10',
-    LEMON_SQUEEZY_VARIANT_ID: '20',
-  });
-
-  const webhookBody = JSON.stringify({
-    meta: {
-      event_name: 'order_created',
-      custom_data: {
-        report_id: summaryBody.reportId,
-        session_id: 'session-webhook',
-      },
-    },
-    data: {
-      id: 'order-900',
-      type: 'orders',
-      attributes: {
-        user_email: 'user@example.com',
-        status: 'paid',
-      },
-    },
-  });
-  const signature = createHmac('sha256', 'whsec_test').update(webhookBody).digest('hex');
-
-  const response = await handler.fetch(new Request('https://example.com/api/webhooks/lemonsqueezy', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Signature': signature,
-      'X-Event-Name': 'order_created',
-    },
-    body: webhookBody,
-  }), {
-    DB: db,
-    LEMON_SQUEEZY_WEBHOOK_SECRET: 'whsec_test',
-  });
-  const body = await response.json();
-
-  assert.equal(response.status, 200);
-  assert.equal(body.ok, true);
-  assert.ok(db.statements.some((item) => item.sql.includes('UPDATE payment_orders')));
-  assert.ok(db.statements.some((item) => item.params[3] === 'payment_completed'));
-});
-
-test('webhook endpoint reports a missing Lemon Squeezy signing secret clearly', async () => {
-  const handler = createWorkerHandler();
-  const response = await handler.fetch(new Request('https://example.com/api/webhooks/lemonsqueezy', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({}),
-  }), {});
-  const body = await response.json();
-
-  assert.equal(response.status, 500);
-  assert.match(body.error, /LEMON_SQUEEZY_WEBHOOK_SECRET/);
-});
-
-test('full report endpoint returns the paid report after payment is confirmed', async () => {
-  const db = createD1Spy();
-  const handler = createWorkerHandler(createSequentialFetch(
-    createCompareSummaryFetchResponse(),
-    createCheckoutFetchResponse(),
     createCompareFullFetchResponse(),
   ));
   const summaryResponse = await handler.fetch(new Request('https://example.com/api/report/summary', {
@@ -753,60 +540,8 @@ test('full report endpoint returns the paid report after payment is confirmed', 
   }), {
     DB: db,
     OPENROUTER_API_KEY: 'test-key',
-    LEMON_SQUEEZY_API_KEY: 'ls-key',
-    LEMON_SQUEEZY_STORE_ID: '10',
-    LEMON_SQUEEZY_VARIANT_ID: '20',
   });
   const summaryBody = await summaryResponse.json();
-
-  await handler.fetch(new Request('https://example.com/api/checkout/compare-report', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-wenming-session-id': 'session-full',
-    },
-    body: JSON.stringify({
-      reportId: summaryBody.reportId,
-    }),
-  }), {
-    DB: db,
-    OPENROUTER_API_KEY: 'test-key',
-    LEMON_SQUEEZY_API_KEY: 'ls-key',
-    LEMON_SQUEEZY_STORE_ID: '10',
-    LEMON_SQUEEZY_VARIANT_ID: '20',
-  });
-
-  const webhookBody = JSON.stringify({
-    meta: {
-      event_name: 'order_created',
-      custom_data: {
-        report_id: summaryBody.reportId,
-        session_id: 'session-full',
-      },
-    },
-    data: {
-      id: 'order-901',
-      type: 'orders',
-      attributes: {
-        user_email: 'user@example.com',
-        status: 'paid',
-      },
-    },
-  });
-  const signature = createHmac('sha256', 'whsec_test').update(webhookBody).digest('hex');
-
-  await handler.fetch(new Request('https://example.com/api/webhooks/lemonsqueezy', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Signature': signature,
-      'X-Event-Name': 'order_created',
-    },
-    body: webhookBody,
-  }), {
-    DB: db,
-    LEMON_SQUEEZY_WEBHOOK_SECRET: 'whsec_test',
-  });
 
   const response = await handler.fetch(new Request(`https://example.com/api/report/full?report_id=${summaryBody.reportId}`, {
     method: 'GET',

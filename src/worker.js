@@ -1,6 +1,6 @@
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const LEMON_SQUEEZY_API_URL = 'https://api.lemonsqueezy.com/v1/checkouts';
-const OPENROUTER_DEFAULT_MODEL = 'deepseek/deepseek-v3.2';
+
+const OPENROUTER_DEFAULT_MODEL = 'google/gemini-3.1-flash-lite-preview';
 const OPENROUTER_PARSE_MAX_ATTEMPTS = 2;
 const TEN_MINUTES_MS = 10 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -640,93 +640,7 @@ async function storeFullReport(env, reportId, fullReport) {
     .run();
 }
 
-function ensureLemonSqueezyEnv(env) {
-  const missing = [
-    'LEMON_SQUEEZY_API_KEY',
-    'LEMON_SQUEEZY_STORE_ID',
-    'LEMON_SQUEEZY_VARIANT_ID',
-  ].filter((key) => !env[key]);
 
-  if (missing.length > 0) {
-    throw new Error(`Lemon Squeezy 配置未完成：缺少 ${missing.join('、')}。`);
-  }
-}
-
-function getAppOrigin(request, env) {
-  if (typeof env?.PUBLIC_APP_URL === 'string' && env.PUBLIC_APP_URL.trim().length > 0) {
-    return env.PUBLIC_APP_URL.trim().replace(/\/$/, '');
-  }
-
-  return new URL(request.url).origin;
-}
-
-async function createLemonSqueezyCheckout(request, env, report, fetchImpl) {
-  ensureLemonSqueezyEnv(env);
-
-  const redirectUrl = `${getAppOrigin(request, env)}/#/compare-report?report_id=${encodeURIComponent(report.report_id)}&paid=1`;
-  const response = await fetchImpl(LEMON_SQUEEZY_API_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.LEMON_SQUEEZY_API_KEY}`,
-      Accept: 'application/vnd.api+json',
-      'Content-Type': 'application/vnd.api+json',
-    },
-    body: JSON.stringify({
-      data: {
-        type: 'checkouts',
-        attributes: {
-          checkout_data: {
-            custom: {
-              report_id: report.report_id,
-              session_id: report.session_id,
-            },
-          },
-          product_options: {
-            redirect_url: redirectUrl,
-          },
-          checkout_options: {
-            embed: false,
-            media: false,
-            logo: true,
-          },
-          preview: true,
-        },
-        relationships: {
-          store: {
-            data: {
-              type: 'stores',
-              id: String(env.LEMON_SQUEEZY_STORE_ID),
-            },
-          },
-          variant: {
-            data: {
-              type: 'variants',
-              id: String(env.LEMON_SQUEEZY_VARIANT_ID),
-            },
-          },
-        },
-      },
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || 'Lemon Squeezy checkout 创建失败。');
-  }
-
-  const body = await response.json();
-  const checkoutUrl = body?.data?.attributes?.url;
-  if (typeof checkoutUrl !== 'string' || checkoutUrl.length === 0) {
-    throw new Error('Lemon Squeezy checkout URL 缺失。');
-  }
-
-  return {
-    checkoutUrl,
-    providerCheckoutId: body?.data?.id ?? null,
-    amountCents: Number(body?.data?.attributes?.preview?.total ?? 0),
-    currency: body?.data?.attributes?.preview?.currency ?? 'USD',
-  };
-}
 
 async function hmacSha256Hex(secret, bodyText) {
   const key = await crypto.subtle.importKey(
@@ -742,15 +656,7 @@ async function hmacSha256Hex(secret, bodyText) {
     .join('');
 }
 
-async function verifyLemonSqueezySignature(request, secret, bodyText) {
-  const actual = request.headers.get('x-signature');
-  if (!actual) {
-    return false;
-  }
 
-  const expected = await hmacSha256Hex(secret, bodyText);
-  return actual === expected;
-}
 
 async function handleGenerate(request, env, fetchImpl) {
   const payload = await request.json();
@@ -872,92 +778,7 @@ async function handleGetCompareSummary(request, env) {
   });
 }
 
-async function handleCheckoutCreate(request, env, fetchImpl) {
-  const payload = await request.json();
-  if (!validateCheckoutPayload(payload)) {
-    return jsonResponse({ error: 'reportId 必填。' }, { status: 400 });
-  }
 
-  const report = await getReportRequest(env, payload.reportId.trim());
-  if (!report) {
-    return jsonResponse({ error: '比较报告不存在。' }, { status: 404 });
-  }
-
-  const checkout = await createLemonSqueezyCheckout(request, env, report, fetchImpl);
-
-  await createPaymentOrder(env, {
-    reportId: report.report_id,
-    provider: 'lemonsqueezy',
-    providerCheckoutId: checkout.providerCheckoutId,
-    amountCents: checkout.amountCents,
-    currency: checkout.currency,
-    paymentStatus: 'created',
-  });
-
-  await safeInsertEventLog(env, {
-    sessionId: report.session_id,
-    reportId: report.report_id,
-    eventName: 'checkout_created',
-    page: 'compare-report',
-    payload: {
-      provider: 'lemonsqueezy',
-      amountCents: checkout.amountCents,
-      currency: checkout.currency,
-    },
-  });
-
-  return jsonResponse({
-    checkoutUrl: checkout.checkoutUrl,
-    providerCheckoutId: checkout.providerCheckoutId,
-  });
-}
-
-async function handleLemonSqueezyWebhook(request, env) {
-  if (!env.LEMON_SQUEEZY_WEBHOOK_SECRET) {
-    return jsonResponse({ error: 'Lemon Squeezy webhook secret 未配置：缺少 LEMON_SQUEEZY_WEBHOOK_SECRET。' }, { status: 500 });
-  }
-
-  const bodyText = await request.text();
-  const isValid = await verifyLemonSqueezySignature(request, env.LEMON_SQUEEZY_WEBHOOK_SECRET, bodyText);
-  if (!isValid) {
-    return jsonResponse({ error: 'Webhook 签名校验失败。' }, { status: 401 });
-  }
-
-  const payload = JSON.parse(bodyText);
-  const eventName = payload?.meta?.event_name || request.headers.get('x-event-name');
-  if (eventName !== 'order_created') {
-    return jsonResponse({ ok: true, ignored: true });
-  }
-
-  const reportId = payload?.meta?.custom_data?.report_id;
-  const sessionId = payload?.meta?.custom_data?.session_id || 'unknown';
-  if (typeof reportId !== 'string' || reportId.trim().length === 0) {
-    return jsonResponse({ error: 'Webhook 缺少 report_id。' }, { status: 400 });
-  }
-
-  const paidAt = new Date().toISOString();
-  await markPaymentOrderPaid(env, {
-    reportId: reportId.trim(),
-    providerOrderId: String(payload?.data?.id ?? ''),
-    customerEmail: payload?.data?.attributes?.user_email ?? null,
-    rawPayloadJson: bodyText,
-    paidAt,
-  });
-  await updateReportStatus(env, reportId.trim(), 'paid');
-
-  await safeInsertEventLog(env, {
-    sessionId,
-    reportId: reportId.trim(),
-    eventName: 'payment_completed',
-    page: 'compare-report',
-    payload: {
-      provider: 'lemonsqueezy',
-      providerOrderId: String(payload?.data?.id ?? ''),
-    },
-  });
-
-  return jsonResponse({ ok: true });
-}
 
 async function handleFullReport(request, env, fetchImpl) {
   const url = new URL(request.url);
@@ -971,10 +792,7 @@ async function handleFullReport(request, env, fetchImpl) {
     return jsonResponse({ error: '比较报告不存在。' }, { status: 404 });
   }
 
-  const paymentOrder = await getPaymentOrderByReportId(env, reportId);
-  if (!paymentOrder || paymentOrder.payment_status !== 'paid') {
-    return jsonResponse({ error: '完整报告尚未解锁。' }, { status: 402 });
-  }
+  // 限免期间：跳过支付校验，直接生成完整报告
 
   const cachedFullReport = parseStoredJson(report.full_report_json);
   if (cachedFullReport) {
@@ -1130,13 +948,7 @@ export function createWorkerHandler(fetchImpl = fetch) {
           return await handleCompareSummary(request, env, fetchImpl);
         }
 
-        if (url.pathname === '/api/checkout/compare-report') {
-          return await handleCheckoutCreate(request, env, fetchImpl);
-        }
 
-        if (url.pathname === '/api/webhooks/lemonsqueezy') {
-          return await handleLemonSqueezyWebhook(request, env);
-        }
 
         return jsonResponse({ error: '接口不存在。' }, { status: 404 });
       } catch (error) {

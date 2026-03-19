@@ -1,6 +1,6 @@
 # 问名
 
-问名是一个中文宝宝起名 Web 项目，核心方向不是玄学，也不是流行词堆砌，而是用“大雅大俗，新文人起名”的审美标准，帮用户更认真地看待一个名字。
+问名是一个中文宝宝起名 Web 项目，核心方向不是玄学，也不是流行词堆砌，而是用"大雅大俗，新文人起名"的审美标准，帮用户更认真地看待一个名字。
 
 项目主要面向两类场景：
 - 还没有名字时，输入姓氏和偏好，生成一批可选名字
@@ -35,14 +35,10 @@ cp .dev.vars.example .dev.vars
 
 本地最少要补齐这些值：
 - `OPENROUTER_API_KEY`
-- `LEMON_SQUEEZY_API_KEY`
-- `LEMON_SQUEEZY_STORE_ID`
-- `LEMON_SQUEEZY_VARIANT_ID`
-- `LEMON_SQUEEZY_WEBHOOK_SECRET`
 - `PUBLIC_APP_URL`
 
 可选覆盖项：
-- `OPENROUTER_MODEL`：默认是 `deepseek/deepseek-v3.2`
+- `OPENROUTER_MODEL`：默认是 `google/gemini-3.1-flash-lite-preview`
 
 补完 `.dev.vars` 之后，再运行：
 
@@ -57,47 +53,12 @@ npm run dev
 npm run preview
 ```
 
-## Lemon Squeezy 配置
-
-这版支付链路已经接进 Worker，当前代码固定会用到：
-- `LEMON_SQUEEZY_API_KEY`
-- `LEMON_SQUEEZY_STORE_ID`
-- `LEMON_SQUEEZY_VARIANT_ID`
-- `LEMON_SQUEEZY_WEBHOOK_SECRET`
-- `PUBLIC_APP_URL`
-
-在 Lemon Squeezy 后台需要完成这几步：
-1. 创建或确认一个 `Store`
-2. 为“完整比较报告”创建一个 `Product` 和一个可售 `Variant`
-3. 创建 API key
-4. 创建 webhook，回调地址填 `${PUBLIC_APP_URL}/api/webhooks/lemonsqueezy`
-5. webhook 至少订阅 `order_created`
-
-项目里的变量和后台项是一一对应的：
-- `LEMON_SQUEEZY_API_KEY`：Lemon Squeezy API key
-- `LEMON_SQUEEZY_STORE_ID`：Store ID
-- `LEMON_SQUEEZY_VARIANT_ID`：完整比较报告对应的 Variant ID
-- `LEMON_SQUEEZY_WEBHOOK_SECRET`：webhook signing secret
-- `PUBLIC_APP_URL`：线上站点地址，例如 `https://wenming.example.com`
-
-当前 Worker 的支付行为是：
-- 创建 checkout：`POST /api/checkout/compare-report`
-- 支付成功回跳：`${PUBLIC_APP_URL}/#/compare-report?report_id=...&paid=1`
-- 接收 webhook：`POST /api/webhooks/lemonsqueezy`
-
-如果要本地联调，可以先把 `PUBLIC_APP_URL` 指向本地 Worker 地址，例如：
-
-```bash
-PUBLIC_APP_URL=http://127.0.0.1:8787
-```
-
 ## 事件日志与漏斗
 
 这版已经把关键行为写进 `D1` 的 `event_logs`，包括：
 - `share_clicked`
 - `summary_report_opened`
 - `upgrade_clicked`
-- `payment_completed`
 
 如果只是排查 Worker 报错，可以直接看：
 
@@ -105,7 +66,7 @@ PUBLIC_APP_URL=http://127.0.0.1:8787
 npx wrangler tail
 ```
 
-如果要看“分享 -> 打开摘要 -> 点击升级 -> 支付成功”这条漏斗，可以直接运行：
+如果要看漏斗，可以直接运行：
 
 ```bash
 npm run analytics:funnel:local
@@ -126,12 +87,5 @@ npm run analytics:funnel:remote -- --days 14
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
 - `OPENROUTER_API_KEY`
-- `OPENROUTER_MODEL`（可选，不填时默认 `deepseek/deepseek-v3.2`）
-- `LEMON_SQUEEZY_API_KEY`
-- `LEMON_SQUEEZY_STORE_ID`
-- `LEMON_SQUEEZY_VARIANT_ID`
-- `LEMON_SQUEEZY_WEBHOOK_SECRET`
+- `OPENROUTER_MODEL`（可选，不填时默认 `google/gemini-3.1-flash-lite-preview`）
 - `PUBLIC_APP_URL`
-
-现在 deploy workflow 会自动把以上运行时值同步到 Cloudflare Worker。  
-如果 GitHub Secrets 里没填完整，部署仍然会继续，但 workflow 会给出 warning，线上 checkout 也会按缺失项直接报错。
