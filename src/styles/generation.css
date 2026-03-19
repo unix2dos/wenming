@@ -210,6 +210,11 @@
   border-radius: 22px;
   background: rgba(247, 243, 238, 0.52);
   overflow: hidden;
+  transition: background var(--transition-fast);
+}
+
+.advanced-panel:hover {
+  background: rgba(247, 243, 238, 0.82);
 }
 
 .advanced-summary {
@@ -221,29 +226,50 @@
   justify-content: space-between;
   gap: var(--spacing-md);
   color: var(--color-dai);
-  font-weight: 500;
+  user-select: none;
 }
 
 .advanced-summary::-webkit-details-marker {
   display: none;
 }
 
-.advanced-summary::after {
-  content: '展开';
-  color: var(--color-yanhui);
-  font-size: 0.9rem;
-  font-weight: 400;
+.advanced-summary-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
 }
 
-.advanced-panel[open] .advanced-summary::after {
-  content: '收起';
+.advanced-summary-title {
+  font-weight: 500;
+  font-size: 1.05rem;
 }
 
 .advanced-summary-copy {
-  margin-left: auto;
   color: var(--color-yanhui);
   font-weight: 400;
   font-size: 0.92rem;
+}
+
+.advanced-summary-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-yanhui);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.6);
+  transition: transform 0.3s ease, background var(--transition-fast);
+}
+
+.advanced-summary:hover .advanced-summary-icon {
+  background: rgba(255, 255, 255, 1);
+  color: var(--color-dai);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+}
+
+.advanced-panel[open] .advanced-summary-icon {
+  transform: rotate(180deg);
 }
 
 .advanced-content {
@@ -514,13 +540,10 @@
     padding: 10px 14px;
   }
 
-  .advanced-summary {
+  .advanced-summary-left {
     flex-direction: column;
     align-items: flex-start;
-  }
-
-  .advanced-summary-copy {
-    margin-left: 0;
+    gap: var(--spacing-xs);
   }
 
   .generation-modal-actions {

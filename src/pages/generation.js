@@ -26,7 +26,7 @@ export function renderGeneration(container) {
     error: null,
     data: null,
     selectedStyle: preset?.style || '不限',
-    advancedOpen: Boolean(preset),
+    advancedOpen: false,
     form: {
       surname: '',
       gender: '未知',
@@ -111,8 +111,13 @@ export function renderGeneration(container) {
 
             <details class="advanced-panel" ${state.advancedOpen ? 'open' : ''}>
               <summary id="advanced-toggle" class="advanced-summary">
-                <span>高级设置</span>
-                <span class="advanced-summary-copy">风格偏好、指定字、排除字</span>
+                <div class="advanced-summary-left">
+                  <span class="advanced-summary-title">高级设置</span>
+                  <span class="advanced-summary-copy">风格偏好、指定字、排除字</span>
+                </div>
+                <div class="advanced-summary-icon">
+                  <i data-lucide="chevron-down"></i>
+                </div>
               </summary>
 
               <div class="advanced-content">
