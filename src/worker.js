@@ -1,6 +1,6 @@
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 const LEMON_SQUEEZY_API_URL = 'https://api.lemonsqueezy.com/v1/checkouts';
-const OPENROUTER_MODEL = 'google/gemini-2.5-flash';
+const OPENROUTER_DEFAULT_MODEL = 'deepseek/deepseek-v3.2';
 const OPENROUTER_PARSE_MAX_ATTEMPTS = 2;
 const TEN_MINUTES_MS = 10 * 60 * 1000;
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -396,6 +396,9 @@ function normalizeGenerateResult(parsed) {
 
 async function fetchOpenRouter(promptPayload, env, fetchImpl) {
   const apiKey = env.OPENROUTER_API_KEY || env.VITE_OPENROUTER_API_KEY;
+  const model = typeof env?.OPENROUTER_MODEL === 'string' && env.OPENROUTER_MODEL.trim().length > 0
+    ? env.OPENROUTER_MODEL.trim()
+    : OPENROUTER_DEFAULT_MODEL;
 
   if (!apiKey) {
     throw new Error('Cloudflare secret OPENROUTER_API_KEY 未配置。');
@@ -411,7 +414,7 @@ async function fetchOpenRouter(promptPayload, env, fetchImpl) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: OPENROUTER_MODEL,
+        model,
         temperature: 0,
         messages: [
           { role: 'system', content: promptPayload.systemPrompt },

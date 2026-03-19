@@ -41,6 +41,9 @@ cp .dev.vars.example .dev.vars
 - `LEMON_SQUEEZY_WEBHOOK_SECRET`
 - `PUBLIC_APP_URL`
 
+可选覆盖项：
+- `OPENROUTER_MODEL`：默认是 `deepseek/deepseek-v3.2`
+
 补完 `.dev.vars` 之后，再运行：
 
 ```bash
@@ -123,6 +126,7 @@ npm run analytics:funnel:remote -- --days 14
 - `CLOUDFLARE_API_TOKEN`
 - `CLOUDFLARE_ACCOUNT_ID`
 - `OPENROUTER_API_KEY`
+- `OPENROUTER_MODEL`（可选，不填时默认 `deepseek/deepseek-v3.2`）
 - `LEMON_SQUEEZY_API_KEY`
 - `LEMON_SQUEEZY_STORE_ID`
 - `LEMON_SQUEEZY_VARIANT_ID`

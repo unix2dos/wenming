@@ -361,6 +361,34 @@ test('generate endpoint logs completion events without changing the API response
   assert.equal(db.statements[0].params[3], 'generate_completed');
 });
 
+test('generate endpoint uses OPENROUTER_MODEL when provided', async () => {
+  const db = createD1Spy();
+  const handler = createWorkerHandler(async (_url, init) => {
+    const payload = JSON.parse(init.body);
+    assert.equal(payload.model, 'custom/model');
+    return createGenerateFetchResponse();
+  });
+  const request = new Request('https://example.com/api/generate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      surname: '林',
+      gender: '女',
+      style: '大雅',
+    }),
+  });
+
+  const response = await handler.fetch(request, {
+    DB: db,
+    OPENROUTER_API_KEY: 'test-key',
+    OPENROUTER_MODEL: 'custom/model',
+  });
+
+  assert.equal(response.status, 200);
+});
+
 test('report summary endpoint returns a persisted summary report for selected names', async () => {
   const db = createD1Spy();
   const handler = createWorkerHandler(async () => createCompareSummaryFetchResponse());
