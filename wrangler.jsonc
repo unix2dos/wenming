@@ -17,7 +17,7 @@
       // npx wrangler d1 create wenming
       "binding": "DB",
       "database_name": "wenming",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "a5f94453-b916-4419-90fa-856eb9521339",
       "migrations_dir": "migrations"
     }
   ],
