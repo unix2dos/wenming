@@ -61,44 +61,30 @@ jobs:
           LEMON_SQUEEZY_WEBHOOK_SECRET: ${{ secrets.LEMON_SQUEEZY_WEBHOOK_SECRET }}
           PUBLIC_APP_URL: ${{ secrets.PUBLIC_APP_URL }}
 
-      - name: Sync Lemon Squeezy API Key
-        if: ${{ secrets.LEMON_SQUEEZY_API_KEY != '' }}
-        run: printf '%s' "$LEMON_SQUEEZY_API_KEY" | npx wrangler secret put LEMON_SQUEEZY_API_KEY
+      - name: Sync Lemon Squeezy Runtime Config
+        run: |
+          sync_secret() {
+            local key="$1"
+            local value="$2"
+            if [ -z "$value" ]; then
+              echo "skip $key"
+              return 0
+            fi
+            printf '%s' "$value" | npx wrangler secret put "$key"
+          }
+
+          sync_secret LEMON_SQUEEZY_API_KEY "$LEMON_SQUEEZY_API_KEY"
+          sync_secret LEMON_SQUEEZY_STORE_ID "$LEMON_SQUEEZY_STORE_ID"
+          sync_secret LEMON_SQUEEZY_VARIANT_ID "$LEMON_SQUEEZY_VARIANT_ID"
+          sync_secret LEMON_SQUEEZY_WEBHOOK_SECRET "$LEMON_SQUEEZY_WEBHOOK_SECRET"
+          sync_secret PUBLIC_APP_URL "$PUBLIC_APP_URL"
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           LEMON_SQUEEZY_API_KEY: ${{ secrets.LEMON_SQUEEZY_API_KEY }}
-
-      - name: Sync Lemon Squeezy Store ID
-        if: ${{ secrets.LEMON_SQUEEZY_STORE_ID != '' }}
-        run: printf '%s' "$LEMON_SQUEEZY_STORE_ID" | npx wrangler secret put LEMON_SQUEEZY_STORE_ID
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           LEMON_SQUEEZY_STORE_ID: ${{ secrets.LEMON_SQUEEZY_STORE_ID }}
-
-      - name: Sync Lemon Squeezy Variant ID
-        if: ${{ secrets.LEMON_SQUEEZY_VARIANT_ID != '' }}
-        run: printf '%s' "$LEMON_SQUEEZY_VARIANT_ID" | npx wrangler secret put LEMON_SQUEEZY_VARIANT_ID
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           LEMON_SQUEEZY_VARIANT_ID: ${{ secrets.LEMON_SQUEEZY_VARIANT_ID }}
-
-      - name: Sync Lemon Squeezy Webhook Secret
-        if: ${{ secrets.LEMON_SQUEEZY_WEBHOOK_SECRET != '' }}
-        run: printf '%s' "$LEMON_SQUEEZY_WEBHOOK_SECRET" | npx wrangler secret put LEMON_SQUEEZY_WEBHOOK_SECRET
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           LEMON_SQUEEZY_WEBHOOK_SECRET: ${{ secrets.LEMON_SQUEEZY_WEBHOOK_SECRET }}
-
-      - name: Sync Public App URL
-        if: ${{ secrets.PUBLIC_APP_URL != '' }}
-        run: printf '%s' "$PUBLIC_APP_URL" | npx wrangler secret put PUBLIC_APP_URL
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           PUBLIC_APP_URL: ${{ secrets.PUBLIC_APP_URL }}
 
       - name: Apply D1 Migrations
