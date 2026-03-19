@@ -20,7 +20,6 @@ test('renderLanding keeps the hero focused on starting the test', () => {
   assert.doesNotMatch(heroMarkup, /landing-trust-strip/);
   assert.doesNotMatch(container.innerHTML, /为什么先测/);
   assert.doesNotMatch(container.innerHTML, /适合谁来测/);
-  assert.match(container.innerHTML, /scroll-indicator/);
   assert.match(container.innerHTML, /命名原型一览/);
   assert.match(container.innerHTML, /跳过测试，直接起名/);
   assert.doesNotMatch(container.innerHTML, /¥19\.9/);

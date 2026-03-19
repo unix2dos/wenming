@@ -60,7 +60,7 @@ test('buildPartnerShareText gives a direct message for a partner to review', () 
   assert.match(text, /你也看看/);
 });
 
-test('renderCompareReport summary state shows price framing and deliverables', async () => {
+test('renderCompareReport summary state shows free access upgrade section', async () => {
   const container = { innerHTML: '' };
 
   await renderCompareReport(container, {
@@ -90,13 +90,11 @@ test('renderCompareReport summary state shows price framing and deliverables', a
     },
   });
 
-  assert.match(container.innerHTML, /¥19.9/);
-  assert.match(container.innerHTML, /看完摘要再决定/);
-  assert.match(container.innerHTML, /一次解锁/);
-  assert.match(container.innerHTML, /升级后会拿到/);
-  assert.match(container.innerHTML, /升级完整报告/);
+  assert.match(container.innerHTML, /限免开放/);
+  assert.match(container.innerHTML, /查看完整报告/);
   assert.match(container.innerHTML, /推荐排序/);
   assert.match(container.innerHTML, /传统维度补充/);
+  assert.doesNotMatch(container.innerHTML, /¥19\.9/);
 });
 
 test('renderCompareReport fetches a persisted summary by report id and shows a share action', async () => {
