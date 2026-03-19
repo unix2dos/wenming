@@ -1,12 +1,6 @@
 import '../styles/landing.css';
 import { resultProfiles } from '../utils/direction-quiz.js';
 import { trackEvent } from '../utils/analytics.js';
-import {
-  COMPARE_REPORT_FREE_SUMMARY,
-  COMPARE_REPORT_INPUT_LABEL,
-  COMPARE_REPORT_POINTS,
-  COMPARE_REPORT_PRODUCT_NAME,
-} from '../utils/compare-offer-copy.js';
 
 const previewProfiles = [
   resultProfiles.yazheng,
@@ -42,7 +36,8 @@ export function renderLanding(container) {
 
       <section class="landing-section landing-preview-section">
         <div class="landing-section-head">
-          <h2>三个命名原型预览</h2>
+          <p class="landing-section-lead">不知哪种风格适合宝宝？我们将名字凝练为三大美学原型——</p>
+          <h2>命名原型一览</h2>
         </div>
 
         <div class="preview-grid">
@@ -59,31 +54,10 @@ export function renderLanding(container) {
         </div>
       </section>
 
-      <section class="landing-direct-entry">
-        <div class="landing-direct-copy">
-          <h2>已经有明确方向了？</h2>
-          <p>也可以直接输入姓氏与偏好开始起名。</p>
-        </div>
-        <a href="#/generate" class="btn btn-secondary">直接起名</a>
-      </section>
-
-      <section class="landing-section landing-compare-offer">
-        <div class="landing-compare-copy">
-          <p class="landing-offer-kicker">适合已经有 2 到 3 个候选名的人</p>
-          <h2>${COMPARE_REPORT_PRODUCT_NAME}</h2>
-          <p>${COMPARE_REPORT_FREE_SUMMARY}，再决定要不要升级${COMPARE_REPORT_PRODUCT_NAME}。适合拿给伴侣或家人，做最后一轮拍板。</p>
-          <div class="landing-compare-points">
-            ${COMPARE_REPORT_POINTS.map((point) => `<span>${point}</span>`).join('')}
-          </div>
-        </div>
-
-        <div class="landing-compare-cta-panel">
-          <div class="landing-compare-cta-kicker">先把 2 到 3 个候选名放进来</div>
-          <div class="landing-compare-cta-title">${COMPARE_REPORT_FREE_SUMMARY}</div>
-          <div class="landing-compare-cta-note">先看推荐倾向和交付物结构，确认这轮比较值得继续，再决定要不要升级${COMPARE_REPORT_PRODUCT_NAME}。</div>
-          <a href="#/score" class="btn">${COMPARE_REPORT_INPUT_LABEL}</a>
-        </div>
-      </section>
+      <footer class="landing-footer-cta">
+        <p>已在心中描摹好方向？</p>
+        <a href="#/generate" class="landing-footer-link">跳过测试，直接起名 <span>&rarr;</span></a>
+      </footer>
     </div>
   `;
 
@@ -95,19 +69,6 @@ export function renderLanding(container) {
       page: 'landing',
       payload: {
         target: 'test',
-      },
-    });
-  });
-
-  const compareCta = typeof container.querySelector === 'function'
-    ? container.querySelector('.landing-compare-cta-panel a[href="#/score"]')
-    : null;
-  compareCta?.addEventListener('click', () => {
-    void trackEvent('landing_cta_clicked', {
-      page: 'landing',
-      payload: {
-        target: 'score',
-        entry: 'compare-offer',
       },
     });
   });
