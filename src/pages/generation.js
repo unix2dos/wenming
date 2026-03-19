@@ -292,6 +292,7 @@ export function renderGeneration(container) {
     const overview = summarizeGenerationResults(state.data);
     const compareCandidates = selectTopGenerationCandidates(state.data);
     const comparePreview = compareCandidates.map((item) => item.full_name).join(' / ');
+    const sortedData = [...state.data].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
 
     container.innerHTML = `
       <div class="generation-page">
@@ -304,47 +305,17 @@ export function renderGeneration(container) {
         </div>
 
         <div class="results-section">
-          <section class="generation-results-overview">
-            <p class="generation-results-kicker">本轮结论</p>
-            <h2>${overview.headline}</h2>
-            <p class="generation-results-summary">${overview.summary}</p>
-            <div class="generation-results-actions">
-              ${compareCandidates.length >= 2 ? `
-                <button id="top-generation-compare-btn" class="btn">${COMPARE_REPORT_VIEW_SUMMARY_LABEL}</button>
-              ` : ''}
-              <a href="#/collection" class="btn btn-secondary">${COMPARE_REPORT_PICK_CANDIDATES_LABEL}</a>
-            </div>
-          </section>
-
-          ${compareCandidates.length >= 2 ? `
-            <section class="generation-compare-offer">
-              <div class="generation-compare-copy">
-                <p class="generation-results-kicker">${COMPARE_REPORT_UPSELL_NAME}</p>
-                <h3>${COMPARE_REPORT_FREE_SUMMARY}，再决定要不要升级${COMPARE_REPORT_PRODUCT_NAME}</h3>
-                <p>${comparePreview} 这几个名字已经值得进入最后一轮比较了。先把摘要发给家人看一轮，再决定要不要继续看完整判断。</p>
-                <div class="generation-compare-points">
-                  ${COMPARE_REPORT_POINTS.map((point) => `<span>${point}</span>`).join('')}
-                </div>
-              </div>
-              <div class="generation-compare-cta-panel">
-                <div class="generation-compare-cta-kicker">先把这一轮候选拉进去</div>
-                <div class="generation-compare-cta-title">${COMPARE_REPORT_FREE_SUMMARY}</div>
-                <div class="generation-compare-cta-note">摘要会先告诉你当前更偏向哪个名字，再决定要不要升级${COMPARE_REPORT_PRODUCT_NAME}。</div>
-                <button id="generation-compare-offer-btn" class="btn">${COMPARE_REPORT_VIEW_SUMMARY_LABEL}</button>
-              </div>
-            </section>
-          ` : ''}
-
           <div class="results-header">
             <h2>${preset ? `沿着${preset.profile.type}推敲出的候选名` : '为您推敲的候选名'}</h2>
-            <p class="results-subtitle">先看结论，再点开单个名字查看成立理由、维度分布与收藏动作。</p>
+            <p class="results-subtitle">点开单个名字查看成立理由、维度分布与收藏动作。</p>
           </div>
 
           <div class="results-grid">
-            ${state.data.map((item, index) => {
+            ${sortedData.map((item, index) => {
               const routeClass = item.route === '大雅' ? 'da-ya' : 'da-su';
+              const topClass = index === 0 ? ' top-rank' : '';
               return `
-                <div class="name-card" data-idx="${index}">
+                <div class="name-card${topClass}" data-idx="${state.data.indexOf(item)}">
                   <div class="name-card-title">${item.full_name}</div>
                   <div class="name-card-meta">
                     <span class="name-card-score">${item.score}分</span>
@@ -355,6 +326,30 @@ export function renderGeneration(container) {
               `;
             }).join('')}
           </div>
+
+          <section class="generation-conclusion-strip">
+            <div class="conclusion-strip-text">
+              <p class="conclusion-strip-kicker">本轮结论</p>
+              <p class="conclusion-strip-summary">${overview.summary}</p>
+            </div>
+            <a href="#/collection" class="btn btn-secondary btn-sm">${COMPARE_REPORT_PICK_CANDIDATES_LABEL}</a>
+          </section>
+
+          ${compareCandidates.length >= 2 ? `
+            <section class="generation-compare-offer compact">
+              <div class="generation-compare-copy">
+                <p class="generation-results-kicker">${COMPARE_REPORT_UPSELL_NAME}</p>
+                <h3>${comparePreview} 已值得进入最后一轮比较</h3>
+                <p>先看免费摘要，了解当前更偏向哪个名字，再决定要不要升级${COMPARE_REPORT_PRODUCT_NAME}。</p>
+                <div class="generation-compare-points">
+                  ${COMPARE_REPORT_POINTS.map((point) => `<span>${point}</span>`).join('')}
+                </div>
+              </div>
+              <div class="generation-compare-cta-inline">
+                <button id="generation-compare-offer-btn" class="btn">${COMPARE_REPORT_VIEW_SUMMARY_LABEL}</button>
+              </div>
+            </section>
+          ` : ''}
         </div>
 
         <div id="detail-modal" class="detail-modal">
@@ -362,11 +357,6 @@ export function renderGeneration(container) {
         </div>
       </div>
     `;
-
-    document.getElementById('top-generation-compare-btn')?.addEventListener('click', () => {
-      setPendingCompareNames(compareCandidates);
-      window.location.hash = '#/compare-report';
-    });
 
     document.getElementById('generation-compare-offer-btn')?.addEventListener('click', () => {
       setPendingCompareNames(compareCandidates);

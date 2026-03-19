@@ -354,14 +354,42 @@
   animation: fadeIn var(--transition-normal);
 }
 
-.generation-results-overview {
+/* Conclusion strip — slim horizontal banner below the name grid */
+.generation-conclusion-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-lg);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  border-radius: 20px;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(247, 243, 238, 0.82));
   border: 1px solid rgba(226, 232, 240, 0.9);
-  border-radius: 30px;
-  padding: var(--spacing-2xl);
-  box-shadow: var(--shadow-md);
-  text-align: center;
-  margin-bottom: var(--spacing-2xl);
+  box-shadow: var(--shadow-sm);
+  margin: var(--spacing-2xl) 0;
+}
+
+.conclusion-strip-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.conclusion-strip-kicker {
+  color: var(--color-yanhui);
+  font-size: 0.85rem;
+  letter-spacing: 0.06em;
+}
+
+.conclusion-strip-summary {
+  color: var(--color-dai);
+  line-height: 1.6;
+  font-weight: 500;
+}
+
+.btn-sm {
+  padding: 6px var(--spacing-md);
+  font-size: 0.92rem;
+  white-space: nowrap;
 }
 
 .generation-results-kicker {
@@ -369,42 +397,27 @@
   margin-bottom: var(--spacing-sm);
 }
 
-.generation-results-overview h2 {
-  font-size: clamp(1.8rem, 3vw, 2.6rem);
-  line-height: 1.2;
-  margin-bottom: var(--spacing-sm);
-}
-
-.generation-results-summary {
-  color: var(--color-dai);
-  max-width: 640px;
-  margin: 0 auto var(--spacing-lg);
-  line-height: 1.75;
-}
-
-.generation-results-actions {
+/* Compare offer — compact single-column card */
+.generation-compare-offer.compact {
   display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: var(--spacing-md);
-}
-
-.generation-compare-offer {
-  display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(220px, 0.75fr);
-  gap: var(--spacing-xl);
-  align-items: stretch;
+  flex-direction: column;
+  gap: var(--spacing-lg);
   margin-bottom: var(--spacing-2xl);
-  padding: var(--spacing-2xl);
-  border-radius: 30px;
+  padding: var(--spacing-xl) var(--spacing-2xl);
+  border-radius: 24px;
   border: 1px solid rgba(226, 232, 240, 0.9);
   background: rgba(255, 255, 255, 0.88);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-sm);
 }
 
 .generation-compare-copy {
   display: grid;
   gap: var(--spacing-sm);
+}
+
+.generation-compare-copy h3 {
+  font-size: 1.25rem;
+  line-height: 1.4;
 }
 
 .generation-compare-copy p:last-of-type {
@@ -416,44 +429,23 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-sm);
+  margin-top: var(--spacing-xs);
 }
 
 .generation-compare-points span {
   display: inline-flex;
   align-items: center;
-  padding: 8px 12px;
+  padding: 6px 12px;
   border-radius: 999px;
   background: rgba(247, 243, 238, 0.8);
   border: 1px solid rgba(226, 232, 240, 0.9);
   color: var(--color-dai);
-  font-size: 0.92rem;
+  font-size: 0.88rem;
 }
 
-.generation-compare-cta-panel {
-  display: grid;
-  align-content: start;
-  justify-items: start;
-  gap: var(--spacing-sm);
-  padding: var(--spacing-xl);
-  border-radius: 24px;
-  background: linear-gradient(135deg, rgba(247, 243, 238, 0.92), rgba(255, 255, 255, 0.78));
-}
-
-.generation-compare-cta-kicker {
-  color: var(--color-yanhui);
-  font-size: 0.92rem;
-}
-
-.generation-compare-cta-title {
-  font-size: clamp(1.8rem, 3vw, 2.4rem);
-  font-weight: 700;
-  color: var(--color-dai);
-}
-
-.generation-compare-cta-note {
-  color: var(--color-yanhui);
-  line-height: 1.75;
-  margin-bottom: var(--spacing-sm);
+.generation-compare-cta-inline {
+  display: flex;
+  justify-content: flex-start;
 }
 
 .results-header {
@@ -483,6 +475,12 @@
 
 .name-card:hover {
   transform: translateY(-4px);
+}
+
+.name-card.top-rank {
+  border-left: 3px solid var(--color-ouhe);
+  box-shadow: var(--shadow-md);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(247, 243, 238, 0.6));
 }
 
 .name-card-title {
@@ -643,13 +641,18 @@
     border-radius: 24px;
   }
 
-  .generation-compare-offer {
-    grid-template-columns: 1fr;
-    padding: var(--spacing-xl);
-    border-radius: 24px;
+  .generation-compare-offer.compact {
+    padding: var(--spacing-lg);
+    border-radius: 20px;
   }
 
-  .generation-compare-price .btn {
+  .generation-conclusion-strip {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-md);
+  }
+
+  .generation-conclusion-strip .btn-sm {
     width: 100%;
   }
 
