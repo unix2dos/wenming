@@ -2,8 +2,11 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  clearCompareFlowContext,
   clearPendingCompareNames,
+  getCompareFlowContext,
   getPendingCompareNames,
+  setCompareFlowContext,
   setPendingCompareNames,
 } from './compare-session.js';
 
@@ -37,4 +40,19 @@ test('compare session stores and restores pending compare names', () => {
   clearPendingCompareNames(storage);
 
   assert.deepEqual(getPendingCompareNames(storage), []);
+});
+
+test('compare flow context survives refresh within the same tab storage', () => {
+  const storage = createStorage();
+
+  setCompareFlowContext({ reportId: 'report-summary', source: 'collection' }, storage);
+
+  assert.deepEqual(getCompareFlowContext(storage), {
+    reportId: 'report-summary',
+    source: 'collection',
+  });
+
+  clearCompareFlowContext(storage);
+
+  assert.equal(getCompareFlowContext(storage), null);
 });

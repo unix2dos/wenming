@@ -3,9 +3,12 @@ import { renderLoading } from '../components/loading.js';
 import { getOrCreateSessionId, trackEvent } from '../utils/analytics.js';
 import { exportElementAsPDF } from '../utils/export.js';
 import {
+  getCompareFlowContext,
   clearPendingCompareNames,
   getPendingCompareNames as defaultGetPendingCompareNames,
+  setCompareFlowContext,
 } from '../utils/compare-session.js';
+import { renderBackAction, resolveBackTarget } from '../utils/navigation.js';
 import {
   COMPARE_REPORT_POINTS,
   COMPARE_REPORT_PRODUCT_NAME,
@@ -141,11 +144,11 @@ function updateShareableRoute(reportId) {
   window.history.replaceState(null, '', nextHash);
 }
 
-function renderEmptyState(container) {
+function renderEmptyState(container, backTarget) {
   container.innerHTML = `
     <div class="compare-report-page">
       <div class="compare-report-topbar">
-        <a href="#/collection" class="text-link">返回收藏列表</a>
+        ${renderBackAction(backTarget)}
       </div>
 
       <div class="compare-report-shell">
@@ -159,11 +162,11 @@ function renderEmptyState(container) {
   `;
 }
 
-function renderLoadingState(container) {
+function renderLoadingState(container, backTarget) {
   container.innerHTML = `
     <div class="compare-report-page">
       <div class="compare-report-topbar">
-        <a href="#/collection" class="text-link">返回收藏列表</a>
+        ${renderBackAction(backTarget)}
       </div>
       <div id="compare-report-loading"></div>
     </div>
@@ -174,11 +177,11 @@ function renderLoadingState(container) {
   }
 }
 
-function renderErrorState(container, message) {
+function renderErrorState(container, message, backTarget) {
   container.innerHTML = `
     <div class="compare-report-page">
       <div class="compare-report-topbar">
-        <a href="#/collection" class="text-link">返回收藏列表</a>
+        ${renderBackAction(backTarget)}
       </div>
 
       <div class="compare-report-shell">
@@ -198,6 +201,10 @@ function renderSummaryState(container, report, selectedNames, options = {}) {
   const upgradeTeaser = report.summary?.upgrade_teaser || '解锁完整横向排序、推荐结论与传统维度补充。';
   const isSharedLanding = Boolean(options.isSharedLanding);
   const trackEventImpl = options.trackEventImpl || trackEvent;
+  const backTarget = options.backTarget || resolveBackTarget({
+    page: 'compare-report',
+    hasCompareContext: false,
+  });
   const partnerSharePreview = isSharedLanding
     ? buildPartnerShareText({
       reportId: report.reportId,
@@ -211,7 +218,7 @@ function renderSummaryState(container, report, selectedNames, options = {}) {
   container.innerHTML = `
     <div class="compare-report-page${isSharedLanding ? ' compare-report-page-share-mode' : ''}">
       <div class="compare-report-topbar">
-        <a href="#/collection" class="text-link">返回收藏列表</a>
+        ${renderBackAction(backTarget)}
       </div>
 
       <div class="compare-report-shell">
@@ -340,11 +347,15 @@ function renderFullState(container, reportId, fullReport, options = {}) {
   const ranking = Array.isArray(fullReport?.ranking) ? fullReport.ranking : [];
   const deepAnalysis = Array.isArray(fullReport?.deep_analysis) ? fullReport.deep_analysis : [];
   const trackEventImpl = options.trackEventImpl || trackEvent;
+  const backTarget = options.backTarget || resolveBackTarget({
+    page: 'compare-report',
+    hasCompareContext: false,
+  });
 
   container.innerHTML = `
     <div class="compare-report-page">
       <div class="compare-report-topbar">
-        <a href="#/collection" class="text-link">返回收藏列表</a>
+        ${renderBackAction(backTarget)}
       </div>
 
       <div class="compare-report-shell" id="compare-report-export-area">
@@ -465,12 +476,19 @@ export function renderCompareReport(container, dependencies = {}) {
   const trackEventImpl = dependencies.trackEventImpl || trackEvent;
   const routeState = parseCompareReportState(dependencies.hash);
   const selectedNames = getPendingCompareNames();
+  const compareFlowContext = getCompareFlowContext();
+  const hasCompareContext = selectedNames.length > 0
+    || Boolean(compareFlowContext?.reportId && compareFlowContext.reportId === routeState.reportId && compareFlowContext.source === 'collection');
+  const backTarget = resolveBackTarget({
+    page: 'compare-report',
+    hasCompareContext,
+  });
 
   if (routeState.reportId && routeState.paid) {
-    renderLoadingState(container);
+    renderLoadingState(container, backTarget);
 
     if (!fetchImpl) {
-      renderErrorState(container, '当前环境不支持完整报告请求。');
+      renderErrorState(container, '当前环境不支持完整报告请求。', backTarget);
       return Promise.resolve();
     }
 
@@ -488,18 +506,19 @@ export function renderCompareReport(container, dependencies = {}) {
         renderFullState(container, body.reportId, body.fullReport, {
           trackEventImpl,
           appOrigin: dependencies.appOrigin,
+          backTarget,
         });
       })
       .catch((error) => {
-        renderErrorState(container, error instanceof Error ? error.message : '完整报告获取失败。');
+        renderErrorState(container, error instanceof Error ? error.message : '完整报告获取失败。', backTarget);
       });
   }
 
   if (routeState.reportId) {
-    renderLoadingState(container);
+    renderLoadingState(container, backTarget);
 
     if (!fetchImpl) {
-      renderErrorState(container, '当前环境不支持比较请求。');
+      renderErrorState(container, '当前环境不支持比较请求。', backTarget);
       return Promise.resolve();
     }
 
@@ -527,22 +546,23 @@ export function renderCompareReport(container, dependencies = {}) {
           isSharedLanding: true,
           trackEventImpl,
           appOrigin: dependencies.appOrigin,
+          backTarget,
         });
       })
       .catch((error) => {
-        renderErrorState(container, error instanceof Error ? error.message : '比较摘要获取失败。');
+        renderErrorState(container, error instanceof Error ? error.message : '比较摘要获取失败。', backTarget);
       });
   }
 
   if (selectedNames.length < 2) {
-    renderEmptyState(container);
+    renderEmptyState(container, backTarget);
     return Promise.resolve();
   }
 
-  renderLoadingState(container);
+  renderLoadingState(container, backTarget);
 
   if (!fetchImpl) {
-    renderErrorState(container, '当前环境不支持比较请求。');
+    renderErrorState(container, '当前环境不支持比较请求。', backTarget);
     return Promise.resolve();
   }
 
@@ -569,14 +589,19 @@ export function renderCompareReport(container, dependencies = {}) {
     })
     .then((report) => {
       clearPendingCompareNames();
+      setCompareFlowContext({
+        reportId: report.reportId,
+        source: 'collection',
+      });
       updateShareableRoute(report.reportId);
       renderSummaryState(container, report, selectedNames, {
         trackEventImpl,
         appOrigin: dependencies.appOrigin,
+        backTarget,
       });
     })
     .catch((error) => {
-      renderErrorState(container, error instanceof Error ? error.message : '比较摘要生成失败。');
+      renderErrorState(container, error instanceof Error ? error.message : '比较摘要生成失败。', backTarget);
       if (typeof document !== 'undefined') {
         document.getElementById('retry-compare-report')?.addEventListener('click', () => {
           void renderCompareReport(container, dependencies);

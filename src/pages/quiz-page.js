@@ -6,6 +6,7 @@ import {
   quizQuestions,
 } from '../utils/direction-quiz.js';
 import { trackEvent } from '../utils/analytics.js';
+import { renderBackAction, resolveBackTarget } from '../utils/navigation.js';
 
 function buildShareUrl(result) {
   const query = encodeShareState({
@@ -44,11 +45,12 @@ export function renderTest(container) {
   function renderQuestion() {
     const question = quizQuestions[state.currentIndex];
     const progress = ((state.currentIndex + 1) / quizQuestions.length) * 100;
+    const backTarget = resolveBackTarget({ page: 'test', state: 'question' });
 
     container.innerHTML = `
       <div class="test-page">
         <div class="test-topbar">
-          <a href="#/" class="text-link">返回首页</a>
+          ${renderBackAction(backTarget)}
           <span class="test-progress-copy">${state.currentIndex + 1} / ${quizQuestions.length}</span>
         </div>
 
@@ -104,12 +106,21 @@ export function renderTest(container) {
       profile: profile.id,
       acceptance: acceptance.id,
     });
+    const backTarget = resolveBackTarget({
+      page: 'test',
+      state: 'result',
+      onBack: () => {
+        state.currentIndex = 0;
+        state.answers = [];
+        state.result = null;
+        renderQuestion();
+      },
+    });
 
     container.innerHTML = `
       <div class="test-page">
         <div class="test-topbar">
-          <a href="#/" class="text-link">返回首页</a>
-          <button type="button" id="restart-quiz" class="btn-text text-link">重新测试</button>
+          ${renderBackAction(backTarget, { id: 'test-back-btn' })}
         </div>
 
         <div class="result-shell">
@@ -154,12 +165,7 @@ export function renderTest(container) {
       </div>
     `;
 
-    document.getElementById('restart-quiz').addEventListener('click', () => {
-      state.currentIndex = 0;
-      state.answers = [];
-      state.result = null;
-      renderQuestion();
-    });
+    document.getElementById('test-back-btn')?.addEventListener('click', backTarget.onBack);
 
     document.getElementById('share-result').addEventListener('click', async () => {
       const notice = document.getElementById('share-notice');

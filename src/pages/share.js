@@ -7,6 +7,7 @@ import {
   resultProfiles,
 } from '../utils/direction-quiz.js';
 import { trackEvent } from '../utils/analytics.js';
+import { renderBackAction, resolveBackTarget } from '../utils/navigation.js';
 
 export function renderShare(container) {
   const query = parseHashQuery();
@@ -18,11 +19,12 @@ export function renderShare(container) {
     profile: profile.id,
     acceptance: acceptance.id,
   });
+  const backTarget = resolveBackTarget({ page: 'share' });
 
   container.innerHTML = `
     <div class="share-page">
       <div class="share-topbar">
-        <a href="#/" class="text-link">返回首页</a>
+        ${renderBackAction(backTarget)}
       </div>
 
       <div class="share-shell">

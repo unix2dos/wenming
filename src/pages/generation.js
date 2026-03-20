@@ -1,15 +1,14 @@
 import '../styles/generation.css';
 import { generateNames } from '../api/openrouter.js';
 import { renderLoading } from '../components/loading.js';
-import { renderRadarChart } from '../components/radar-chart.js';
+import { normalizeRadarDimensions, renderRadarChart } from '../components/radar-chart.js';
 import { saveName, removeName, isNameSaved } from '../utils/storage.js';
 import { exportElementAsPDF } from '../utils/export.js';
 import { formatApiErrorMessage } from '../utils/api-error.js';
 import { getAcceptanceProfile, getGenerationPreset, parseHashQuery } from '../utils/direction-quiz.js';
 import { setPendingCompareNames } from '../utils/compare-session.js';
+import { renderBackAction, resolveBackTarget } from '../utils/navigation.js';
 import {
-  COMPARE_REPORT_FREE_SUMMARY,
-  COMPARE_REPORT_PICK_CANDIDATES_LABEL,
   COMPARE_REPORT_POINTS,
   COMPARE_REPORT_PRODUCT_NAME,
   COMPARE_REPORT_UPSELL_NAME,
@@ -32,26 +31,6 @@ export function selectTopGenerationCandidates(results = [], limit = 3) {
   return [...results]
     .sort((left, right) => (right.score ?? 0) - (left.score ?? 0))
     .slice(0, limit);
-}
-
-export function summarizeGenerationResults(results = []) {
-  if (!Array.isArray(results) || results.length === 0) {
-    return {
-      leadName: '',
-      leadScore: null,
-      headline: '先收 2 到 3 个名字，再做最后比较。',
-      summary: '先挑出真正想反复比较的候选，再进入完整比较报告。',
-    };
-  }
-
-  const [lead] = selectTopGenerationCandidates(results, 1);
-
-  return {
-    leadName: lead.full_name,
-    leadScore: lead.score ?? null,
-    headline: '先收 2 到 3 个名字，再做最后比较。',
-    summary: `${lead.full_name} 目前最靠前，${lead.score}分，是这一轮里最值得先留下来的候选。`,
-  };
 }
 
 export function renderGeneration(container) {
@@ -86,7 +65,7 @@ export function renderGeneration(container) {
     container.innerHTML = `
       <div class="generation-page">
         <div class="header-back generation-topbar">
-          <a href="#/" class="text-link">返回首页</a>
+          ${renderBackAction(resolveBackTarget({ page: 'generate', state: 'input' }))}
           <div class="generation-topbar-links">
             <a href="#/test" class="text-link">测命名方向</a>
             <a href="#/collection" class="text-link">我的名字夹</a>
@@ -268,10 +247,11 @@ export function renderGeneration(container) {
   }
 
   function renderLoadingState() {
+    const backTarget = resolveBackTarget({ page: 'generate', state: 'loading' });
     container.innerHTML = `
       <div class="generation-page">
         <div class="header-back generation-topbar">
-          <button id="cancel-btn" class="btn-text text-link">打断推敲</button>
+          ${renderBackAction(backTarget)}
         </div>
         <div id="loading-root"></div>
       </div>
@@ -281,23 +261,26 @@ export function renderGeneration(container) {
       document.getElementById('loading-root'),
       preset ? '沿着你们测出的方向推敲候选名…' : 'AI 正在推敲候选名…'
     );
-
-    document.getElementById('cancel-btn').addEventListener('click', () => {
-      state.step = 'input';
-      render();
-    });
   }
 
   function renderResultState() {
-    const overview = summarizeGenerationResults(state.data);
     const compareCandidates = selectTopGenerationCandidates(state.data);
     const comparePreview = compareCandidates.map((item) => item.full_name).join(' / ');
     const sortedData = [...state.data].sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+    const backTarget = resolveBackTarget({
+      page: 'generate',
+      state: 'result',
+      onBack: () => {
+        state.step = 'input';
+        state.data = null;
+        render();
+      },
+    });
 
     container.innerHTML = `
       <div class="generation-page">
         <div class="header-back generation-topbar">
-          <button id="re-gen-btn" class="btn-text text-link">换一批 / 重新起名</button>
+          ${renderBackAction(backTarget, { id: 'generation-back-btn' })}
           <div class="generation-topbar-links">
             <a href="#/test" class="text-link">重测方向</a>
             <a href="#/collection" class="text-link">我的名字夹</a>
@@ -327,14 +310,6 @@ export function renderGeneration(container) {
             }).join('')}
           </div>
 
-          <section class="generation-conclusion-strip">
-            <div class="conclusion-strip-text">
-              <p class="conclusion-strip-kicker">本轮结论</p>
-              <p class="conclusion-strip-summary">${overview.summary}</p>
-            </div>
-            <a href="#/collection" class="btn btn-secondary btn-sm">${COMPARE_REPORT_PICK_CANDIDATES_LABEL}</a>
-          </section>
-
           ${compareCandidates.length >= 2 ? `
             <section class="generation-compare-offer compact">
               <div class="generation-compare-copy">
@@ -363,11 +338,7 @@ export function renderGeneration(container) {
       window.location.hash = '#/compare-report';
     });
 
-    document.getElementById('re-gen-btn').addEventListener('click', () => {
-      state.step = 'input';
-      state.data = null;
-      render();
-    });
+    document.getElementById('generation-back-btn')?.addEventListener('click', backTarget.onBack);
 
     document.querySelectorAll('.name-card').forEach((card) => {
       card.addEventListener('click', (event) => {
@@ -396,11 +367,12 @@ function openDetailModal(nameData) {
     const content = document.getElementById('detail-content');
     const routeClass = nameData.route === '大雅' ? 'da-ya' : 'da-su';
     const saved = isNameSaved(nameData.full_name);
+    const dimensions = normalizeRadarDimensions(nameData.dimensions);
 
     content.innerHTML = `
       <button class="modal-close no-export" id="modal-close">&times;</button>
       <div id="modal-export-area">
-        <div class="generation-modal-header">
+      <div class="generation-modal-header">
           <div class="result-name modal-name">${nameData.full_name}</div>
           <div class="result-meta">
             <div class="total-score modal-score">${nameData.score}<span> / 100</span></div>
@@ -428,7 +400,7 @@ function openDetailModal(nameData) {
     modal.classList.add('active');
 
     setTimeout(() => {
-      renderRadarChart('modal-radar-canvas', nameData.dimensions);
+      renderRadarChart('modal-radar-canvas', dimensions);
     }, 50);
 
     document.getElementById('modal-close').addEventListener('click', () => {
@@ -448,7 +420,10 @@ function openDetailModal(nameData) {
         saveBtn.textContent = '加入名字夹';
         saveBtn.style.backgroundColor = 'var(--color-ouhe)';
       } else {
-        saveName(nameData);
+        saveName({
+          ...nameData,
+          dimensions,
+        });
         saveBtn.textContent = '已在名字夹';
         saveBtn.style.backgroundColor = '#A0AEC0';
       }

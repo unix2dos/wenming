@@ -354,44 +354,6 @@
   animation: fadeIn var(--transition-normal);
 }
 
-/* Conclusion strip — slim horizontal banner below the name grid */
-.generation-conclusion-strip {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--spacing-lg);
-  padding: var(--spacing-lg) var(--spacing-xl);
-  border-radius: 20px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(247, 243, 238, 0.82));
-  border: 1px solid rgba(226, 232, 240, 0.9);
-  box-shadow: var(--shadow-sm);
-  margin: var(--spacing-2xl) 0;
-}
-
-.conclusion-strip-text {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.conclusion-strip-kicker {
-  color: var(--color-yanhui);
-  font-size: 0.85rem;
-  letter-spacing: 0.06em;
-}
-
-.conclusion-strip-summary {
-  color: var(--color-dai);
-  line-height: 1.6;
-  font-weight: 500;
-}
-
-.btn-sm {
-  padding: 6px var(--spacing-md);
-  font-size: 0.92rem;
-  white-space: nowrap;
-}
-
 .generation-results-kicker {
   color: var(--color-yanhui);
   margin-bottom: var(--spacing-sm);
@@ -644,16 +606,6 @@
   .generation-compare-offer.compact {
     padding: var(--spacing-lg);
     border-radius: 20px;
-  }
-
-  .generation-conclusion-strip {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--spacing-md);
-  }
-
-  .generation-conclusion-strip .btn-sm {
-    width: 100%;
   }
 
   .style-card {

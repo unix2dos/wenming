@@ -1,8 +1,69 @@
 import '../styles/collection.css';
 import { getSavedNames, removeName } from '../utils/storage.js';
-import { renderRadarChart } from '../components/radar-chart.js';
+import { normalizeRadarDimensions, renderRadarChart } from '../components/radar-chart.js';
 import { setPendingCompareNames } from '../utils/compare-session.js';
 import { COMPARE_REPORT_VIEW_SUMMARY_LABEL } from '../utils/compare-offer-copy.js';
+import { renderBackAction, resolveBackTarget } from '../utils/navigation.js';
+
+export function renderCollectionCompareView(container, selectedNames = [], options = {}) {
+  const normalizedNames = selectedNames.map((item) => ({
+    ...item,
+    dimensions: normalizeRadarDimensions(item.dimensions),
+  }));
+  const onBack = options.onBack || (() => {});
+  const backTarget = resolveBackTarget({
+    page: 'collection',
+    state: 'compare',
+    onBack,
+  });
+
+  container.innerHTML = `
+    <div class="collection-page">
+      <div class="header-back" style="margin-bottom: 24px;">
+        ${renderBackAction(backTarget, { id: 'collection-back-btn' })}
+      </div>
+
+      <div class="compare-view">
+        <h2 style="text-align:center; font-size:2rem; color: var(--color-dai); margin-bottom: 32px">名字横向鉴赏</h2>
+
+        <div class="compare-grid">
+          ${normalizedNames.map((item, i) => {
+            const routeClass = item.route === '大雅' ? 'da-ya' : 'da-su';
+            return `
+              <div class="compare-item">
+                <div class="result-name" style="font-size: 2.5rem; margin-bottom:8px;">${item.full_name}</div>
+                <div class="result-meta" style="margin-bottom:16px;">
+                  <div class="total-score" style="font-size: 1.5rem;">${item.score}<span> / 100</span></div>
+                  <span class="pill ${routeClass}">${item.route}</span>
+                </div>
+
+                <div class="radar-container" style="margin: 24px 0;">
+                  <canvas id="compare-radar-${i}" style="width: 250px; height: 250px; margin: 0 auto; display:block;"></canvas>
+                </div>
+
+                <div class="overall-comment" style="font-size:0.95rem; margin-top:16px; text-align:left;">
+                  "${item.one_liner}"
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+
+  setTimeout(() => {
+    normalizedNames.forEach((item, i) => {
+      renderRadarChart(`compare-radar-${i}`, item.dimensions);
+    });
+  }, 50);
+
+  document.getElementById('collection-back-btn')?.addEventListener('click', backTarget.onBack);
+
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
+}
 
 export function renderCollection(container) {
   let state = {
@@ -13,10 +74,11 @@ export function renderCollection(container) {
 
   function render() {
     if (state.names.length === 0) {
+      const backTarget = resolveBackTarget({ page: 'collection', state: 'list' });
       container.innerHTML = `
         <div class="collection-page">
           <div class="header-back" style="margin-bottom: 24px;">
-            <a href="#/" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-left" style="width:1.2em; height:1.2em;"></i> 返回首页</a>
+            ${renderBackAction(backTarget)}
           </div>
           <div class="empty-state">
             <h3>名字夹里还没有候选</h3>
@@ -34,11 +96,12 @@ export function renderCollection(container) {
     if (state.view === 'list') {
       const selectedCount = state.compareSelection.size;
       const canCompare = selectedCount >= 2 && selectedCount <= 3;
-      
+      const backTarget = resolveBackTarget({ page: 'collection', state: 'list' });
+
       container.innerHTML = `
         <div class="collection-page">
           <div class="header-back" style="margin-bottom: 16px;">
-            <a href="#/" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-left" style="width:1.2em; height:1.2em;"></i> 返回首页</a>
+            ${renderBackAction(backTarget)}
           </div>
           <div class="collection-header">
             <h2>我的名字夹</h2>
@@ -110,52 +173,11 @@ export function renderCollection(container) {
 
     } else if (state.view === 'compare') {
       const selectedNames = state.names.filter(n => state.compareSelection.has(n.full_name));
-
-      container.innerHTML = `
-        <div class="collection-page">
-          <div class="header-back" style="margin-bottom: 24px;">
-            <button id="back-to-list" class="btn-text" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-left" style="width:1.2em; height:1.2em;"></i> 返回名字夹</button>
-          </div>
-          
-          <div class="compare-view">
-            <h2 style="text-align:center; font-size:2rem; color: var(--color-dai); margin-bottom: 32px">名字横向鉴赏</h2>
-            
-            <div class="compare-grid">
-              ${selectedNames.map((item, i) => {
-                const routeClass = item.route === '大雅' ? 'da-ya' : 'da-su';
-                return `
-                  <div class="compare-item">
-                    <div class="result-name" style="font-size: 2.5rem; margin-bottom:8px;">${item.full_name}</div>
-                    <div class="result-meta" style="margin-bottom:16px;">
-                      <div class="total-score" style="font-size: 1.5rem;">${item.score}<span> / 100</span></div>
-                      <span class="pill ${routeClass}">${item.route}</span>
-                    </div>
-                    
-                    <div class="radar-container" style="margin: 24px 0;">
-                      <canvas id="compare-radar-${i}" style="width: 250px; height: 250px; margin: 0 auto; display:block;"></canvas>
-                    </div>
-                    
-                    <div class="overall-comment" style="font-size:0.95rem; margin-top:16px; text-align:left;">
-                      "${item.one_liner}"
-                    </div>
-                  </div>
-                `;
-              }).join('')}
-            </div>
-          </div>
-        </div>
-      `;
-
-      // Render charts
-      setTimeout(() => {
-        selectedNames.forEach((item, i) => {
-          renderRadarChart(`compare-radar-${i}`, item.dimensions);
-        });
-      }, 50);
-
-      document.getElementById('back-to-list').addEventListener('click', () => {
-        state.view = 'list';
-        render();
+      renderCollectionCompareView(container, selectedNames, {
+        onBack: () => {
+          state.view = 'list';
+          render();
+        },
       });
     }
 

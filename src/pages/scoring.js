@@ -1,11 +1,12 @@
 import '../styles/scoring.css';
 import { scoreName } from '../api/openrouter.js';
 import { renderLoading } from '../components/loading.js';
-import { renderRadarChart } from '../components/radar-chart.js';
+import { normalizeRadarDimensions, renderRadarChart } from '../components/radar-chart.js';
 import { saveName, removeName, isNameSaved, getSavedNames } from '../utils/storage.js';
 import { exportElementAsPDF } from '../utils/export.js';
 import { formatApiErrorMessage } from '../utils/api-error.js';
 import { setPendingCompareNames } from '../utils/compare-session.js';
+import { renderBackAction, resolveBackTarget } from '../utils/navigation.js';
 import {
   COMPARE_REPORT_PICK_CANDIDATES_LABEL,
   COMPARE_REPORT_POINTS,
@@ -30,7 +31,7 @@ export function buildScoreCompareCandidates(currentScoreResult, savedNames = [],
       score: item.score ?? item.total_score ?? null,
       route: item.route ?? '',
       one_liner: item.one_liner ?? item.overall_comment ?? fallbackComment ?? '',
-      dimensions: item.dimensions ?? null,
+      dimensions: normalizeRadarDimensions(item.dimensions),
     });
   };
 
@@ -49,10 +50,11 @@ export function renderScoring(container) {
 
   function render() {
     if (state.step === 'input') {
+      const backTarget = resolveBackTarget({ page: 'score', state: 'input' });
       container.innerHTML = `
         <div class="scoring-page">
           <div class="header-back" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
-            <a href="#/" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-left" style="width:1.2em; height:1.2em;"></i> 返回首页</a>
+            ${renderBackAction(backTarget)}
             <a href="#/collection" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="library" style="width:1.2em; height:1.2em;"></i> 我的名字夹</a>
           </div>
           <div class="input-section">
@@ -86,31 +88,37 @@ export function renderScoring(container) {
         render();
       });
     } else if (state.step === 'loading') {
+      const backTarget = resolveBackTarget({ page: 'score', state: 'loading' });
       container.innerHTML = `
         <div class="scoring-page">
           <div class="header-back" style="margin-bottom: 24px;">
-            <button id="cancel-btn" class="btn-text" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-left" style="width:1.2em; height:1.2em;"></i> 取消返回</button>
+            ${renderBackAction(backTarget)}
           </div>
           <div id="loading-root"></div>
         </div>
       `;
       renderLoading(document.getElementById('loading-root'));
-      document.getElementById('cancel-btn').addEventListener('click', () => {
-        // Soft cancel (doesn't actually abort API request but visually returns)
-        state.step = 'input';
-        render();
-      });
     } else if (state.step === 'result') {
       const d = state.data;
+      const dimensions = normalizeRadarDimensions(d.dimensions);
       const routeClass = d.route === '大雅' ? 'da-ya' : 'da-su';
       const isSaved = isNameSaved(d.full_name);
       const compareCandidates = buildScoreCompareCandidates(d, getSavedNames());
       const canCompare = compareCandidates.length >= 2;
+      const backTarget = resolveBackTarget({
+        page: 'score',
+        state: 'result',
+        onBack: () => {
+          state.step = 'input';
+          state.data = null;
+          render();
+        },
+      });
       
       container.innerHTML = `
         <div class="scoring-page">
           <div class="header-back" style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 24px;">
-            <button id="re-score-btn" class="btn-text" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="arrow-right" style="width:1.2em; height:1.2em;"></i> 测下一个名字</button>
+            ${renderBackAction(backTarget, { id: 'score-back-btn' })}
             <a href="#/collection" style="display:inline-flex; align-items:center; gap:4px;"><i data-lucide="library" style="width:1.2em; height:1.2em;"></i> 我的名字夹</a>
           </div>
           
@@ -134,11 +142,11 @@ export function renderScoring(container) {
 
               <div class="dimensions-list">
                 <h3 class="result-section-label">维度拆解</h3>
-                ${renderDimItem('音韵', d.dimensions.sound)}
-                ${renderDimItem('字形', d.dimensions.shape)}
-                ${renderDimItem('意境', d.dimensions.style)}
-                ${renderDimItem('风骨', d.dimensions.classic)}
-                ${renderDimItem('实用', d.dimensions.practical)}
+                ${renderDimItem('音韵', dimensions.sound)}
+                ${renderDimItem('字形', dimensions.shape)}
+                ${renderDimItem('意境', dimensions.style)}
+                ${renderDimItem('风骨', dimensions.classic)}
+                ${renderDimItem('实用', dimensions.practical)}
               </div>
 
               ${canCompare ? `
@@ -178,14 +186,10 @@ export function renderScoring(container) {
 
       // Render chart after DOM update
       setTimeout(() => {
-        renderRadarChart('radar-canvas', d.dimensions);
+        renderRadarChart('radar-canvas', dimensions);
       }, 50);
 
-      document.getElementById('re-score-btn').addEventListener('click', () => {
-        state.step = 'input';
-        state.data = null;
-        render();
-      });
+      document.getElementById('score-back-btn')?.addEventListener('click', backTarget.onBack);
 
       const saveBtn = document.getElementById('score-save-btn');
       saveBtn.addEventListener('click', () => {
@@ -195,7 +199,7 @@ export function renderScoring(container) {
           score: d.total_score,
           route: d.route,
           one_liner: d.overall_comment,
-          dimensions: d.dimensions
+          dimensions,
         };
 
         if (isNameSaved(d.full_name)) {

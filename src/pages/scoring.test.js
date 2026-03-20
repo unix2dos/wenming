@@ -3,6 +3,72 @@ import assert from 'node:assert/strict';
 
 import { renderScoring } from './scoring.js';
 
+test('renderScoring input and loading states use the shared back label', async () => {
+  const container = { innerHTML: '' };
+  const elements = new Map();
+  const formListeners = {};
+
+  global.document = {
+    head: {
+      appendChild() {},
+    },
+    createElement() {
+      return {
+        id: '',
+        textContent: '',
+      };
+    },
+    getElementById(id) {
+      return elements.get(id);
+    },
+    querySelectorAll() {
+      return [];
+    },
+  };
+
+  global.window = {};
+  global.localStorage = {
+    getItem() {
+      return '[]';
+    },
+    setItem() {},
+  };
+
+  const scoreForm = {
+    addEventListener(type, handler) {
+      formListeners[type] = handler;
+    },
+  };
+  const nameInput = { value: '林见山' };
+  const loadingRoot = { innerHTML: '' };
+  const cancelBtn = {
+    addEventListener() {},
+  };
+
+  elements.set('score-form', scoreForm);
+  elements.set('name-input', nameInput);
+  elements.set('loading-root', loadingRoot);
+  elements.set('cancel-btn', cancelBtn);
+
+  const pendingFetch = new Promise(() => {});
+
+  global.fetch = async () => pendingFetch;
+
+  renderScoring(container);
+
+  assert.match(container.innerHTML, /返回上一层/);
+  assert.match(container.innerHTML, /推敲打分/);
+  assert.doesNotMatch(container.innerHTML, /返回首页|取消返回/);
+
+  void formListeners.submit({
+    preventDefault() {},
+  });
+
+  assert.match(container.innerHTML, /返回上一层/);
+  assert.match(container.innerHTML, /loading-root/);
+  assert.doesNotMatch(container.innerHTML, /返回首页|取消返回/);
+});
+
 test('renderScoring shows a stronger report structure in the result state', () => {
   const container = { innerHTML: '' };
   const elements = new Map();
@@ -116,10 +182,10 @@ test('renderScoring shows a stronger report structure in the result state', () =
         route_reason: '整体气质更克制耐看。',
         dimensions: {
           sound: { score: 18, analysis: '顺口' },
-          shape: { score: 18, analysis: '匀称' },
-          style: { score: 19, analysis: '有余味' },
+          shape: { analysis: '匀称' },
+          style: { score: 19 },
           classic: { score: 18, analysis: '温润' },
-          practical: { score: 18, analysis: '常用字' },
+          practical: {},
         },
         overall_comment: '气质完整，长期使用更稳。',
       };
@@ -129,6 +195,8 @@ test('renderScoring shows a stronger report structure in the result state', () =
   return formListeners.submit({
     preventDefault() {},
   }).then(() => {
+    assert.match(container.innerHTML, /返回上一层/);
+    assert.doesNotMatch(container.innerHTML, /返回首页|取消返回|测下一个名字/);
     assert.match(container.innerHTML, /综合判断/);
     assert.match(container.innerHTML, /适合作为正式候选/);
     assert.match(container.innerHTML, /维度拆解/);
@@ -137,5 +205,6 @@ test('renderScoring shows a stronger report structure in the result state', () =
     assert.match(container.innerHTML, /可升级完整报告/);
     assert.match(container.innerHTML, /推荐排序/);
     assert.doesNotMatch(container.innerHTML, /¥19\.9/);
+    assert.doesNotMatch(container.innerHTML, /undefined/);
   });
 });
