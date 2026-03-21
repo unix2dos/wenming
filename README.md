@@ -86,34 +86,3 @@ npm run analytics:funnel:remote
 ```bash
 npm run analytics:funnel:local
 ```
-
-### 直接查线上 D1
-
-先进入项目目录：
-
-```bash
-cd /Users/liuwei/workspace/wenming
-```
-
-查看最近 50 条使用记录：
-
-```bash
-npx wrangler d1 execute wenming --remote --config /Users/liuwei/workspace/wenming/wrangler.jsonc --command "
-SELECT created_at, event_name, page, session_id, report_id, payload_json
-FROM event_logs
-ORDER BY created_at DESC
-LIMIT 50;
-"
-```
-
-查看今天各事件次数：
-
-```bash
-npx wrangler d1 execute wenming --remote --config /Users/liuwei/workspace/wenming/wrangler.jsonc --command "
-SELECT event_name, COUNT(*) AS cnt
-FROM event_logs
-WHERE created_at >= date('now')
-GROUP BY event_name
-ORDER BY cnt DESC;
-"
-```
