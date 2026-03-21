@@ -217,6 +217,173 @@ test('renderGeneration result state frames the compare report as a paid product'
   assert.doesNotMatch(container.innerHTML, /¥19\.9/);
 });
 
+test('renderGeneration result state renders a mini radar on every candidate card', async () => {
+  const container = { innerHTML: '' };
+  const elements = new Map();
+  const formListeners = {};
+
+  function createRadarCanvas() {
+    return {
+      width: 0,
+      height: 0,
+      getBoundingClientRect() {
+        return {
+          width: 148,
+          height: 148,
+        };
+      },
+      getContext() {
+        return {
+          clearRect() {},
+          beginPath() {},
+          moveTo() {},
+          lineTo() {},
+          closePath() {},
+          stroke() {},
+          fill() {},
+          scale() {},
+          fillText() {},
+        };
+      },
+    };
+  }
+
+  global.document = {
+    head: {
+      appendChild() {},
+    },
+    createElement() {
+      return {
+        id: '',
+        textContent: '',
+      };
+    },
+    getElementById(id) {
+      if (id.startsWith('candidate-radar-') && !elements.has(id)) {
+        elements.set(id, createRadarCanvas());
+      }
+
+      return elements.get(id);
+    },
+    querySelector() {
+      return null;
+    },
+    querySelectorAll() {
+      return [];
+    },
+  };
+
+  global.window = {
+    location: {
+      hash: '#/generate',
+    },
+  };
+  global.setTimeout = (fn) => {
+    fn();
+    return 0;
+  };
+  global.localStorage = {
+    getItem() {
+      return '[]';
+    },
+    setItem() {},
+  };
+
+  const genForm = {
+    addEventListener(type, handler) {
+      formListeners[type] = handler;
+    },
+  };
+  const surname = {
+    value: '林',
+    addEventListener() {},
+  };
+  const specific = {
+    value: '',
+    addEventListener() {},
+  };
+  const exclude = {
+    value: '',
+    addEventListener() {},
+  };
+  const freeDesc = {
+    value: '',
+    addEventListener() {},
+  };
+  const loadingRoot = { innerHTML: '' };
+  const detailModal = {};
+  const detailContent = {};
+
+  elements.set('gen-form', genForm);
+  elements.set('surname', surname);
+  elements.set('specific', specific);
+  elements.set('exclude', exclude);
+  elements.set('freeDesc', freeDesc);
+  elements.set('loading-root', loadingRoot);
+  elements.set('detail-modal', detailModal);
+  elements.set('detail-content', detailContent);
+
+  global.fetch = async () => ({
+    ok: true,
+    async json() {
+      return [
+        {
+          full_name: '林见山',
+          score: 98,
+          route: '大雅',
+          one_liner: '轻静耐看，有留白。',
+          dimensions: {
+            sound: { score: 18, analysis: '顺口' },
+            shape: { score: 17, analysis: '匀称' },
+            style: { score: 20, analysis: '有余味' },
+            classic: { score: 19, analysis: '克制' },
+            practical: { score: 17, analysis: '常用字' },
+          },
+        },
+        {
+          full_name: '林清和',
+          score: 96,
+          route: '大雅',
+          one_liner: '清润安静，读来温和。',
+          dimensions: {
+            sound: { score: 19, analysis: '顺口' },
+            shape: { score: 18, analysis: '匀称' },
+            style: { score: 19, analysis: '有余味' },
+            classic: { score: 19, analysis: '克制' },
+            practical: { score: 16, analysis: '常用字' },
+          },
+        },
+        {
+          full_name: '林春生',
+          score: 88,
+          route: '大俗',
+          one_liner: '自然有生机，记忆点强。',
+          dimensions: {
+            sound: { score: 17, analysis: '顺口' },
+            shape: { score: 18, analysis: '饱满' },
+            style: { score: 18, analysis: '生动' },
+            classic: { score: 15, analysis: '朴拙' },
+            practical: { score: 19, analysis: '好称呼' },
+          },
+        },
+      ];
+    },
+  });
+
+  renderGeneration(container);
+
+  await formListeners.submit({
+    preventDefault() {},
+  });
+
+  assert.match(container.innerHTML, /candidate-radar-0/);
+  assert.match(container.innerHTML, /candidate-radar-1/);
+  assert.match(container.innerHTML, /candidate-radar-2/);
+  assert.equal(elements.get('candidate-radar-0').width > 0, true);
+  assert.equal(elements.get('candidate-radar-1').width > 0, true);
+  assert.equal(elements.get('candidate-radar-2').width > 0, true);
+});
+
 test('renderGeneration detail modal tolerates partial dimension data', async () => {
   const container = { innerHTML: '' };
   const elements = new Map();

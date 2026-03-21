@@ -1,21 +1,25 @@
 const COMPARE_STORAGE_KEY = 'wenming_compare_candidates';
 const COMPARE_FLOW_CONTEXT_KEY = 'wenming_compare_flow_context';
 
+function isStorageLike(storage) {
+  return typeof storage?.getItem === 'function' && typeof storage?.setItem === 'function';
+}
+
 function getStorage(storage, preferSession = false) {
-  if (storage) {
+  if (isStorageLike(storage)) {
     return storage;
   }
 
-  if (preferSession && typeof sessionStorage !== 'undefined') {
-    return sessionStorage;
+  if (preferSession && typeof globalThis.sessionStorage !== 'undefined' && isStorageLike(globalThis.sessionStorage)) {
+    return globalThis.sessionStorage;
   }
 
-  if (typeof localStorage !== 'undefined') {
-    return localStorage;
+  if (typeof globalThis.localStorage !== 'undefined' && isStorageLike(globalThis.localStorage)) {
+    return globalThis.localStorage;
   }
 
-  if (typeof sessionStorage !== 'undefined') {
-    return sessionStorage;
+  if (typeof globalThis.sessionStorage !== 'undefined' && isStorageLike(globalThis.sessionStorage)) {
+    return globalThis.sessionStorage;
   }
 
   return null;
@@ -52,7 +56,7 @@ export function getPendingCompareNames(storage) {
 
 export function clearPendingCompareNames(storage) {
   const targetStorage = getStorage(storage);
-  targetStorage?.removeItem(COMPARE_STORAGE_KEY);
+  targetStorage?.removeItem?.(COMPARE_STORAGE_KEY);
 }
 
 export function setCompareFlowContext(context, storage) {
@@ -90,5 +94,5 @@ export function getCompareFlowContext(storage) {
 
 export function clearCompareFlowContext(storage) {
   const targetStorage = getStorage(storage, true);
-  targetStorage?.removeItem(COMPARE_FLOW_CONTEXT_KEY);
+  targetStorage?.removeItem?.(COMPARE_FLOW_CONTEXT_KEY);
 }

@@ -56,3 +56,17 @@ test('compare flow context survives refresh within the same tab storage', () => 
 
   assert.equal(getCompareFlowContext(storage), null);
 });
+
+test('compare session clear helpers tolerate storage without removeItem', () => {
+  const storage = {
+    getItem() {
+      return null;
+    },
+    setItem() {},
+  };
+
+  assert.doesNotThrow(() => {
+    clearPendingCompareNames(storage);
+    clearCompareFlowContext(storage);
+  });
+});

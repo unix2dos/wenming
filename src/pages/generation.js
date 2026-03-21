@@ -23,6 +23,18 @@ function escapeAttr(value = '') {
     .replaceAll('>', '&gt;');
 }
 
+function renderMiniRadarLegend() {
+  return `
+    <div class="name-card-radar-legend" aria-hidden="true">
+      <span>音</span>
+      <span>形</span>
+      <span>意</span>
+      <span>骨</span>
+      <span>实</span>
+    </div>
+  `;
+}
+
 export function selectTopGenerationCandidates(results = [], limit = 3) {
   if (!Array.isArray(results) || limit <= 0) {
     return [];
@@ -304,6 +316,10 @@ export function renderGeneration(container) {
                     <span class="name-card-score">${item.score}分</span>
                     <span class="pill ${routeClass}">${item.route}</span>
                   </div>
+                  <div class="name-card-radar">
+                    <canvas id="candidate-radar-${index}" class="name-card-radar-canvas"></canvas>
+                    ${renderMiniRadarLegend()}
+                  </div>
                   <div class="name-card-desc">"${item.one_liner}"</div>
                 </div>
               `;
@@ -339,6 +355,16 @@ export function renderGeneration(container) {
     });
 
     document.getElementById('generation-back-btn')?.addEventListener('click', backTarget.onBack);
+
+    setTimeout(() => {
+      sortedData.forEach((item, index) => {
+        renderRadarChart(`candidate-radar-${index}`, item.dimensions, {
+          showAxisLabels: false,
+          showAxisScores: false,
+          padding: 18,
+        });
+      });
+    }, 0);
 
     document.querySelectorAll('.name-card').forEach((card) => {
       card.addEventListener('click', (event) => {

@@ -31,6 +31,23 @@ test('getOrCreateSessionId returns a stable session id once created', () => {
   assert.equal(second, 'session-abc');
 });
 
+test('getOrCreateSessionId falls back to crypto when storage is not storage-like', () => {
+  const cryptoStub = {
+    randomUUID() {
+      return 'session-fallback';
+    },
+  };
+
+  const sessionId = getOrCreateSessionId({
+    storage: {
+      setItem() {},
+    },
+    cryptoImpl: cryptoStub,
+  });
+
+  assert.equal(sessionId, 'session-fallback');
+});
+
 test('trackEvent posts structured payloads to the worker events API', async () => {
   const calls = [];
   const storage = createStorage();

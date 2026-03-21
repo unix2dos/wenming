@@ -92,6 +92,37 @@ const ROUTE_POLICIES = {
   },
 };
 
+const GENERATED_DIMENSION_KEYS = ['sound', 'shape', 'style', 'classic', 'practical'];
+const GENERATED_DIMENSION_OFFSETS = {
+  大雅: {
+    sound: -1,
+    shape: 0,
+    style: 1,
+    classic: 2,
+    practical: -1,
+  },
+  大俗: {
+    sound: 0,
+    shape: 1,
+    style: 1,
+    classic: -1,
+    practical: 2,
+  },
+};
+const GENERATED_DIMENSION_ANALYSIS = {
+  sound: '读起来顺口，声气比较稳。',
+  shape: '字形搭配均衡，落笔干净。',
+  practical: '日常称呼顺手，书写辨识度高。',
+  style: {
+    大雅: '整体留白感足，气质更安静耐看。',
+    大俗: '画面更自然，带一点直接的生命力。',
+  },
+  classic: {
+    大雅: '气质克制，有温润的书卷意味。',
+    大俗: '不造作，带一点朴拙的人间感。',
+  },
+};
+
 function jsonResponse(payload, init = {}) {
   const headers = new Headers(init.headers);
   headers.set('content-type', 'application/json; charset=utf-8');
@@ -252,7 +283,23 @@ function buildGeneratePrompt(preferences) {
 - 选"大雅"：6 雅 2 俗 | 选"大俗"：2 雅 6 俗 | 选"不限"：4-4
 - 分数有梯度，风格有变化
 
-输出：请返回严格 JSON。优先返回对象格式 {"names":[...]}；若直接返回数组也可。每个名字字段包含 full_name, route (只能是"大雅"或"大俗"), score, one_liner, dimensions(包含sound, shape, style, classic, practical)。`;
+输出：请返回严格 JSON。优先返回对象格式 {"names":[...]}；若直接返回数组也可。
+每个名字都必须返回完整的 dimensions，5 个维度 sound / shape / style / classic / practical 一个都不能缺。
+每个维度都必须同时包含 score 和 analysis，其中 score 必须是 0-20 的数字，analysis 必须是简短中文说明。
+请严格参考下面的单个名字结构：
+{
+  "full_name": "林见山",
+  "route": "大雅",
+  "score": 92,
+  "one_liner": "轻静耐看，有留白。",
+  "dimensions": {
+    "sound": {"score": 18, "analysis": "分析"},
+    "shape": {"score": 18, "analysis": "分析"},
+    "style": {"score": 19, "analysis": "分析"},
+    "classic": {"score": 19, "analysis": "分析"},
+    "practical": {"score": 18, "analysis": "分析"}
+  }
+}`;
 
   return { systemPrompt, userPrompt: prompt };
 }
@@ -392,6 +439,76 @@ function normalizeGenerateResult(parsed) {
   }
 
   throw new Error('起名返回格式不正确。');
+}
+
+function clampScore(value, fallback = 10) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) {
+    return fallback;
+  }
+
+  return Math.max(0, Math.min(20, Math.round(numericValue)));
+}
+
+function getGenerateRoute(route) {
+  return route === '大俗' ? '大俗' : '大雅';
+}
+
+function getGenerateDimensionBase(score) {
+  const numericScore = Number(score);
+  if (!Number.isFinite(numericScore)) {
+    return 15;
+  }
+
+  return Math.max(8, Math.min(20, Math.round(numericScore / 5)));
+}
+
+function buildGenerateDimensionAnalysis(key, route) {
+  const routeAwareCopy = GENERATED_DIMENSION_ANALYSIS[key];
+  if (typeof routeAwareCopy === 'string') {
+    return routeAwareCopy;
+  }
+
+  return routeAwareCopy?.[route] || '';
+}
+
+function normalizeGeneratedDimensions(dimensions, score, route) {
+  const normalizedRoute = getGenerateRoute(route);
+  const baseScore = getGenerateDimensionBase(score);
+  const offsets = GENERATED_DIMENSION_OFFSETS[normalizedRoute];
+
+  return GENERATED_DIMENSION_KEYS.reduce((acc, key) => {
+    const source = dimensions?.[key] ?? {};
+    const fallbackScore = clampScore(baseScore + offsets[key], baseScore);
+    const normalizedScore = clampScore(source.score, fallbackScore);
+    const normalizedAnalysis = typeof source.analysis === 'string' && source.analysis.trim().length > 0
+      ? source.analysis.trim()
+      : buildGenerateDimensionAnalysis(key, normalizedRoute);
+
+    acc[key] = {
+      score: normalizedScore,
+      analysis: normalizedAnalysis,
+    };
+    return acc;
+  }, {});
+}
+
+function normalizeGeneratedNames(names) {
+  return (Array.isArray(names) ? names : [])
+    .filter((item) => typeof item?.full_name === 'string' && item.full_name.trim().length > 0)
+    .map((item) => {
+      const route = getGenerateRoute(item.route);
+      const score = Number.isFinite(Number(item.score)) ? Number(item.score) : 0;
+
+      return {
+        ...item,
+        full_name: item.full_name.trim(),
+        route,
+        score,
+        one_liner: typeof item.one_liner === 'string' ? item.one_liner.trim() : '',
+        dimensions: normalizeGeneratedDimensions(item.dimensions, score, route),
+      };
+    });
 }
 
 async function fetchOpenRouter(promptPayload, env, fetchImpl) {
@@ -665,7 +782,7 @@ async function handleGenerate(request, env, fetchImpl) {
   }
 
   const result = await fetchOpenRouter(buildGeneratePrompt(payload), env, fetchImpl);
-  const names = normalizeGenerateResult(result);
+  const names = normalizeGeneratedNames(normalizeGenerateResult(result));
 
   await safeInsertEventLog(env, {
     sessionId: getSessionId(request, payload),

@@ -11,7 +11,7 @@ export function normalizeRadarDimensions(dimensions = {}) {
   }, {});
 }
 
-export function renderRadarChart(canvasId, dimensions) {
+export function renderRadarChart(canvasId, dimensions, options = {}) {
   const canvas = document.getElementById(canvasId);
   if (!canvas) return;
 
@@ -29,7 +29,10 @@ export function renderRadarChart(canvasId, dimensions) {
   const height = rect.height;
   const cx = width / 2;
   const cy = height / 2;
-  const radius = Math.min(cx, cy) - 30;
+  const padding = Number.isFinite(options.padding) ? options.padding : 30;
+  const radius = Math.max(12, Math.min(cx, cy) - padding);
+  const showAxisLabels = options.showAxisLabels !== false;
+  const showAxisScores = options.showAxisScores !== false;
 
   const labels = ['音韵', '字形', '意境', '风骨', '实用'];
   const normalizedDimensions = normalizeRadarDimensions(dimensions);
@@ -72,17 +75,25 @@ export function renderRadarChart(canvasId, dimensions) {
     ctx.strokeStyle = '#E2E8F0';
     ctx.stroke();
 
-    const textR = radius + 15;
-    const textX = cx + textR * Math.cos(angle);
-    const textY = cy + textR * Math.sin(angle);
+    if (showAxisLabels || showAxisScores) {
+      const textR = radius + 15;
+      const textX = cx + textR * Math.cos(angle);
+      const textY = cy + textR * Math.sin(angle);
 
-    ctx.font = '12px Noto Sans SC';
-    ctx.fillStyle = '#A0AEC0';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(labels[i], textX, textY - 6);
-    ctx.fillStyle = '#4A5568';
-    ctx.fillText(data[i], textX, textY + 8);
+      ctx.font = '12px Noto Sans SC';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+
+      if (showAxisLabels) {
+        ctx.fillStyle = '#A0AEC0';
+        ctx.fillText(labels[i], textX, textY - (showAxisScores ? 6 : 0));
+      }
+
+      if (showAxisScores) {
+        ctx.fillStyle = '#4A5568';
+        ctx.fillText(data[i], textX, textY + (showAxisLabels ? 8 : 0));
+      }
+    }
   }
 
   ctx.beginPath();

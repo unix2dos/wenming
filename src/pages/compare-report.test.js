@@ -328,35 +328,57 @@ test('renderCompareReport summary state shows free access upgrade section', asyn
 test('renderCompareReport fetches a persisted summary by report id and shows a share action', async () => {
   const container = { innerHTML: '' };
   const trackedEvents = [];
+  const previousLocalStorage = global.localStorage;
+  const previousSessionStorage = global.sessionStorage;
 
-  await renderCompareReport(container, {
-    hash: '#/compare-report?report_id=report-summary',
-    trackEventImpl: async (eventName, options) => {
-      trackedEvents.push({ eventName, options });
-      return true;
+  global.localStorage = {
+    getItem() {
+      return null;
     },
-    fetchImpl: async (url) => {
-      assert.equal(url, '/api/report/summary?report_id=report-summary');
-      return {
-        ok: true,
-        async json() {
-          return {
-            reportId: 'report-summary',
-            summary: {
-              recommendation: {
-                chosen_name: '林见山',
-                headline: '林见山更稳，更像最后会留下来的那个。',
-                summary: '它更适合做这一轮的第一候选。',
+    setItem() {},
+    removeItem() {},
+  };
+  global.sessionStorage = {
+    getItem() {
+      return null;
+    },
+    setItem() {},
+    removeItem() {},
+  };
+
+  try {
+    await renderCompareReport(container, {
+      hash: '#/compare-report?report_id=report-summary',
+      trackEventImpl: async (eventName, options) => {
+        trackedEvents.push({ eventName, options });
+        return true;
+      },
+      fetchImpl: async (url) => {
+        assert.equal(url, '/api/report/summary?report_id=report-summary');
+        return {
+          ok: true,
+          async json() {
+            return {
+              reportId: 'report-summary',
+              summary: {
+                recommendation: {
+                  chosen_name: '林见山',
+                  headline: '林见山更稳，更像最后会留下来的那个。',
+                  summary: '它更适合做这一轮的第一候选。',
+                },
+                cards: [],
+                upgrade_teaser: '完整报告会给出排序、推荐结论与传统维度补充。',
               },
-              cards: [],
-              upgrade_teaser: '完整报告会给出排序、推荐结论与传统维度补充。',
-            },
-          };
-        },
-      };
-    },
-    getPendingCompareNames: () => [],
-  });
+            };
+          },
+        };
+      },
+      getPendingCompareNames: () => [],
+    });
+  } finally {
+    global.localStorage = previousLocalStorage;
+    global.sessionStorage = previousSessionStorage;
+  }
 
   assert.match(container.innerHTML, /林见山更稳/);
   assert.match(container.innerHTML, /分享结果卡/);

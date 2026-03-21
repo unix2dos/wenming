@@ -343,6 +343,95 @@ test('generate endpoint logs completion events without changing the API response
   assert.equal(db.statements[0].params[3], 'generate_completed');
 });
 
+test('generate endpoint prompt includes an explicit radar schema for every name', async () => {
+  const db = createD1Spy();
+  const handler = createWorkerHandler(async (_url, init) => {
+    const payload = JSON.parse(init.body);
+    const systemPrompt = payload.messages[0].content;
+
+    assert.match(systemPrompt, /每个名字都必须返回完整的 dimensions/i);
+    assert.match(systemPrompt, /"dimensions": \{/);
+    assert.match(systemPrompt, /"sound": \{"score": 18, "analysis": "分析"\}/);
+
+    return createGenerateFetchResponse();
+  });
+
+  const request = new Request('https://example.com/api/generate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      surname: '林',
+      gender: '男',
+      style: '大俗',
+    }),
+  });
+
+  const response = await handler.fetch(request, {
+    DB: db,
+    OPENROUTER_API_KEY: 'test-key',
+  });
+
+  assert.equal(response.status, 200);
+});
+
+test('generate endpoint fills missing radar dimensions before returning names', async () => {
+  const db = createD1Spy();
+  const handler = createWorkerHandler(async () => ({
+    ok: true,
+    async json() {
+      return {
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                names: [
+                  {
+                    full_name: '林春生',
+                    route: '大俗',
+                    score: 88,
+                    one_liner: '自然有生机，读来很有力。',
+                    dimensions: {
+                      sound: { score: 17 },
+                    },
+                  },
+                ],
+              }),
+            },
+          },
+        ],
+      };
+    },
+  }));
+
+  const request = new Request('https://example.com/api/generate', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      surname: '林',
+      gender: '男',
+      style: '大俗',
+    }),
+  });
+
+  const response = await handler.fetch(request, {
+    DB: db,
+    OPENROUTER_API_KEY: 'test-key',
+  });
+  const body = await response.json();
+
+  assert.equal(response.status, 200);
+  assert.deepEqual(Object.keys(body[0].dimensions).sort(), ['classic', 'practical', 'shape', 'sound', 'style']);
+  assert.equal(body[0].dimensions.sound.score, 17);
+  assert.equal(typeof body[0].dimensions.sound.analysis, 'string');
+  assert.ok(body[0].dimensions.sound.analysis.length > 0);
+  assert.ok(body[0].dimensions.practical.score > 10);
+  assert.ok(body[0].dimensions.shape.analysis.length > 0);
+});
+
 test('generate endpoint uses OPENROUTER_MODEL when provided', async () => {
   const db = createD1Spy();
   const handler = createWorkerHandler(async (_url, init) => {

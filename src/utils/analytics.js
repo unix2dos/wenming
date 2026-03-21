@@ -1,12 +1,16 @@
 const SESSION_STORAGE_KEY = 'wenming_session_id';
 
+function isStorageLike(storage) {
+  return typeof storage?.getItem === 'function' && typeof storage?.setItem === 'function';
+}
+
 function getStorage(storage) {
-  if (storage) {
+  if (isStorageLike(storage)) {
     return storage;
   }
 
-  if (typeof localStorage !== 'undefined') {
-    return localStorage;
+  if (typeof globalThis.localStorage !== 'undefined' && isStorageLike(globalThis.localStorage)) {
+    return globalThis.localStorage;
   }
 
   return null;
