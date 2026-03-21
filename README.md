@@ -52,3 +52,68 @@ npm run dev
 ```bash
 npm run preview
 ```
+
+## 数据与分析
+
+项目的用户使用记录主要记在 Cloudflare D1 里，核心表有：
+- `event_logs`：行为事件日志
+- `report_requests`：比较报告请求记录
+- `payment_orders`：支付订单记录
+
+### 比较漏斗脚本
+
+```bash
+npm run analytics:funnel:remote
+```
+
+这个命令会读取线上 D1 的 `event_logs`，汇总最近 7 天和“比较报告”相关的漏斗指标，包括：
+- `share_clicks`：分享结果卡点击数
+- `summary_opens`：比较摘要打开数
+- `partner_copy_clicks`：复制给伴侣的话术点击数
+- `shared_report_cta_clicks`：分享页继续去测试的点击数
+- `upgrade_clicks`：查看完整报告点击数
+- `payments`：支付完成数
+
+同时会输出几个转化率：
+- `share_to_open`
+- `open_to_copy`
+- `open_to_test`
+- `open_to_upgrade`
+- `upgrade_to_pay`
+
+如果你想查本地模拟库，用：
+
+```bash
+npm run analytics:funnel:local
+```
+
+### 直接查线上 D1
+
+先进入项目目录：
+
+```bash
+cd /Users/liuwei/workspace/wenming
+```
+
+查看最近 50 条使用记录：
+
+```bash
+npx wrangler d1 execute wenming --remote --config /Users/liuwei/workspace/wenming/wrangler.jsonc --command "
+SELECT created_at, event_name, page, session_id, report_id, payload_json
+FROM event_logs
+ORDER BY created_at DESC
+LIMIT 50;
+"
+```
+
+查看今天各事件次数：
+
+```bash
+npx wrangler d1 execute wenming --remote --config /Users/liuwei/workspace/wenming/wrangler.jsonc --command "
+SELECT event_name, COUNT(*) AS cnt
+FROM event_logs
+WHERE created_at >= date('now')
+GROUP BY event_name
+ORDER BY cnt DESC;
+"
+```
