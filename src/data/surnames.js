@@ -34,7 +34,7 @@ const SURNAME_POPULATION = {
  * 0 = 非常常见 (>10000 估计重名), 1 = 较常见 (1000-10000),
  * 2 = 一般 (100-1000), 3 = 较少见 (<100)
  *
- * 仅收录常见双字名和单字名，查不到的默认为 2（一般）
+ * 仅收录少量常见双字名和单字名；未收录则视为暂无可靠数据
  */
 const NAME_FREQUENCY = {
   // 非常常见 (0)
@@ -65,21 +65,11 @@ export function getSurnamePopulation(surname) {
 /**
  * 获取名字频率等级
  * @param {string} givenName - 名（不含姓）
- * @returns {number} 0-3 等级
+ * @returns {number|null} 0-3 等级；null 表示暂无可靠数据
  */
 export function getNameFrequencyTier(givenName) {
-  if (!givenName) return 2;
-  // 先查完整名
-  if (NAME_FREQUENCY[givenName] !== undefined) {
-    return NAME_FREQUENCY[givenName];
-  }
-  // 再查单字
-  for (const char of givenName) {
-    if (NAME_FREQUENCY[char] !== undefined) {
-      return NAME_FREQUENCY[char];
-    }
-  }
-  return 2; // 默认一般
+  if (!givenName) return null;
+  return NAME_FREQUENCY[givenName] ?? null;
 }
 
 /**
@@ -97,18 +87,9 @@ export function getNameFrequencyTier(givenName) {
 export function estimateNameFrequency(surname, givenName) {
   const pop = getSurnamePopulation(surname);
   const freqTier = getNameFrequencyTier(givenName);
+  if (pop === null || freqTier === null) return null;
 
   const coefficients = [3.0, 0.5, 0.05, 0.005];
-  const tierLabels = ['非常常见', '较常见', '较少见', '非常少见'];
-
-  if (pop === null) {
-    // 姓氏不在 Top 100，无法估算，但可以给名字频率
-    return {
-      estimate: null,
-      tier: tierLabels[freqTier],
-      tierIndex: freqTier,
-    };
-  }
 
   const estimate = Math.round(pop * coefficients[freqTier]);
 

@@ -15,6 +15,7 @@ export function renderCulturalBoard(cultural, { collapsed = false, culturalNote 
   if (!cultural) return '';
 
   const sections = [];
+  const hasExpandableContent = collapsed && Boolean(cultural.zodiac || culturalNote);
 
   // 谐音警告（最先展示）
   if (cultural.homophones.length > 0) {
@@ -53,7 +54,7 @@ export function renderCulturalBoard(cultural, { collapsed = false, culturalNote 
     <div class="cultural-board${collapsedClass}">
       <h3 class="cultural-board__title">传统文化视角</h3>
       ${sections.join('')}
-      ${collapsed ? `
+      ${hasExpandableContent ? `
         <button class="cultural-board__expand" data-action="expand-cultural">
           展开全部 ▸
         </button>
