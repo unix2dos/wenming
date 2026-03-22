@@ -4,13 +4,14 @@ import { generateNames } from '../api/openrouter.js';
 import { renderLoading } from '../components/loading.js';
 import { normalizeRadarDimensions, renderRadarChart } from '../components/radar-chart.js';
 import { renderCulturalBoard, bindCulturalBoardEvents } from '../components/cultural-board.js';
+import { renderBirthdayPicker, bindBirthdayPicker } from '../components/birthday-picker.js';
 import { saveName, removeName, isNameSaved } from '../utils/storage.js';
 import { exportElementAsPDF } from '../utils/export.js';
 import { formatApiErrorMessage } from '../utils/api-error.js';
 import { getAcceptanceProfile, getGenerationPreset, parseHashQuery } from '../utils/direction-quiz.js';
 import { setPendingCompareNames } from '../utils/compare-session.js';
 import { renderBackAction, resolveBackTarget } from '../utils/navigation.js';
-import { analyzeCultural, getSavedBirthday, saveBirthday, getInstantTianganDizhi } from '../utils/cultural.js';
+import { analyzeCultural, getSavedBirthday } from '../utils/cultural.js';
 import {
   COMPARE_REPORT_POINTS,
   COMPARE_REPORT_PRODUCT_NAME,
@@ -137,11 +138,7 @@ export function renderGeneration(container) {
               </div>
             </div>
 
-            <div class="form-group">
-              <label for="gen-birthday" style="font-size:13px; color:var(--color-yanhui);">宝宝生日 <span class="optional">(选填，用于生肖分析)</span></label>
-              <input type="date" id="gen-birthday" class="input-underline" value="${getSavedBirthday() || ''}" />
-              <div class="birthday-feedback" id="gen-birthday-feedback">${getSavedBirthday() ? (getInstantTianganDizhi(getSavedBirthday()) || '') : ''}</div>
-            </div>
+            ${renderBirthdayPicker('gen')}
 
             <div class="form-group">
               <label for="freeDesc">自由描述期待 <span class="optional">(选填)</span></label>
@@ -217,14 +214,8 @@ export function renderGeneration(container) {
       });
     }
 
-    // Birthday instant feedback
-    const genBirthdayInput = document.getElementById('gen-birthday');
-    const genBirthdayFeedback = document.getElementById('gen-birthday-feedback');
-    genBirthdayInput.addEventListener('change', () => {
-      const val = genBirthdayInput.value;
-      saveBirthday(val);
-      genBirthdayFeedback.textContent = val ? (getInstantTianganDizhi(val) || '') : '';
-    });
+    // Birthday picker
+    bindBirthdayPicker('gen');
 
     document.getElementById('surname').addEventListener('input', (event) => {
       state.form.surname = event.target.value;

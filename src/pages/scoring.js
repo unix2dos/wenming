@@ -4,12 +4,13 @@ import { scoreName } from '../api/openrouter.js';
 import { renderLoading } from '../components/loading.js';
 import { normalizeRadarDimensions, renderRadarChart } from '../components/radar-chart.js';
 import { renderCulturalBoard, bindCulturalBoardEvents } from '../components/cultural-board.js';
+import { renderBirthdayPicker, bindBirthdayPicker } from '../components/birthday-picker.js';
 import { saveName, removeName, isNameSaved, getSavedNames } from '../utils/storage.js';
 import { exportElementAsPDF } from '../utils/export.js';
 import { formatApiErrorMessage } from '../utils/api-error.js';
 import { setPendingCompareNames } from '../utils/compare-session.js';
 import { renderBackAction, resolveBackTarget } from '../utils/navigation.js';
-import { analyzeCultural, getSavedBirthday, saveBirthday, getInstantTianganDizhi } from '../utils/cultural.js';
+import { analyzeCultural, getSavedBirthday } from '../utils/cultural.js';
 import {
   COMPARE_REPORT_PICK_CANDIDATES_LABEL,
   COMPARE_REPORT_POINTS,
@@ -64,11 +65,7 @@ export function renderScoring(container) {
             <h2>看看名字好不好</h2>
             <form id="score-form" class="input-group">
               <input type="text" id="name-input" class="input-underline" placeholder="输入名字 (例如: 林半亩)" required maxlength="4" autocomplete="off" />
-              <div class="form-group" style="margin-top: var(--spacing-md);">
-                <label for="score-birthday" style="font-size:13px; color:var(--color-yanhui);">宝宝生日 <span class="optional">(选填，用于生肖分析)</span></label>
-                <input type="date" id="score-birthday" class="input-underline" value="${getSavedBirthday() || ''}" />
-                <div class="birthday-feedback" id="score-birthday-feedback">${getSavedBirthday() ? (getInstantTianganDizhi(getSavedBirthday()) || '') : ''}</div>
-              </div>
+              ${renderBirthdayPicker('score')}
               <button type="submit" class="btn">推敲打分</button>
             </form>
             ${state.error ? `<div class="error-message">${state.error}</div>` : ''}
@@ -76,26 +73,17 @@ export function renderScoring(container) {
         </div>
       `;
 
-      // Birthday instant feedback
-      const birthdayInput = document.getElementById('score-birthday');
-      const birthdayFeedback = document.getElementById('score-birthday-feedback');
-      birthdayInput.addEventListener('change', () => {
-        const val = birthdayInput.value;
-        saveBirthday(val);
-        birthdayFeedback.textContent = val ? (getInstantTianganDizhi(val) || '') : '';
-      });
+      // Birthday picker
+      bindBirthdayPicker('score');
 
       document.getElementById('score-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const name = document.getElementById('name-input').value.trim();
         if (!name) return;
 
-        const birthday = document.getElementById('score-birthday').value || null;
-        if (birthday) saveBirthday(birthday);
-
+        state.birthday = getSavedBirthday();
         state.step = 'loading';
         state.error = null;
-        state.birthday = birthday;
         render();
 
         try {
