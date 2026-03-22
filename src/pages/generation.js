@@ -1,13 +1,16 @@
 import '../styles/generation.css';
+import '../styles/cultural.css';
 import { generateNames } from '../api/openrouter.js';
 import { renderLoading } from '../components/loading.js';
 import { normalizeRadarDimensions, renderRadarChart } from '../components/radar-chart.js';
+import { renderCulturalBoard, bindCulturalBoardEvents } from '../components/cultural-board.js';
 import { saveName, removeName, isNameSaved } from '../utils/storage.js';
 import { exportElementAsPDF } from '../utils/export.js';
 import { formatApiErrorMessage } from '../utils/api-error.js';
 import { getAcceptanceProfile, getGenerationPreset, parseHashQuery } from '../utils/direction-quiz.js';
 import { setPendingCompareNames } from '../utils/compare-session.js';
 import { renderBackAction, resolveBackTarget } from '../utils/navigation.js';
+import { analyzeCultural, getSavedBirthday, saveBirthday, getInstantTianganDizhi } from '../utils/cultural.js';
 import {
   COMPARE_REPORT_POINTS,
   COMPARE_REPORT_PRODUCT_NAME,
@@ -135,6 +138,12 @@ export function renderGeneration(container) {
             </div>
 
             <div class="form-group">
+              <label for="gen-birthday" style="font-size:13px; color:var(--color-yanhui);">宝宝生日 <span class="optional">(选填，用于生肖分析)</span></label>
+              <input type="date" id="gen-birthday" class="input-underline" value="${getSavedBirthday() || ''}" />
+              <div class="birthday-feedback" id="gen-birthday-feedback">${getSavedBirthday() ? (getInstantTianganDizhi(getSavedBirthday()) || '') : ''}</div>
+            </div>
+
+            <div class="form-group">
               <label for="freeDesc">自由描述期待 <span class="optional">(选填)</span></label>
               <textarea id="freeDesc" class="textarea-underline" rows="3" placeholder="例如：希望名字有秋天的感觉，或者像古诗里的悠远意境">${escapeAttr(state.form.freeDescription)}</textarea>
             </div>
@@ -207,6 +216,15 @@ export function renderGeneration(container) {
         state.advancedOpen = advancedPanel.open;
       });
     }
+
+    // Birthday instant feedback
+    const genBirthdayInput = document.getElementById('gen-birthday');
+    const genBirthdayFeedback = document.getElementById('gen-birthday-feedback');
+    genBirthdayInput.addEventListener('change', () => {
+      const val = genBirthdayInput.value;
+      saveBirthday(val);
+      genBirthdayFeedback.textContent = val ? (getInstantTianganDizhi(val) || '') : '';
+    });
 
     document.getElementById('surname').addEventListener('input', (event) => {
       state.form.surname = event.target.value;
@@ -411,6 +429,11 @@ function openDetailModal(nameData) {
           <canvas id="modal-radar-canvas" style="width: 250px; height: 250px; margin: 0 auto; display:block;"></canvas>
         </div>
         <div class="generation-modal-note">这里先给你一轮专业摘要，用来判断这个名字是否值得进入最终比较。</div>
+        ${(() => {
+          const surname = state.form.surname || nameData.full_name.charAt(0);
+          const cultural = analyzeCultural(nameData.full_name, surname, getSavedBirthday());
+          return renderCulturalBoard(cultural, { collapsed: true, culturalNote: nameData.cultural_note || null });
+        })()}
       </div>
 
       <div class="modal-actions no-export generation-modal-actions">
@@ -428,6 +451,9 @@ function openDetailModal(nameData) {
     setTimeout(() => {
       renderRadarChart('modal-radar-canvas', dimensions);
     }, 50);
+
+    // Bind cultural board interactions in modal
+    bindCulturalBoardEvents(content);
 
     document.getElementById('modal-close').addEventListener('click', () => {
       modal.classList.remove('active');

@@ -30,6 +30,6 @@ export function generateNames(preferences) {
   return requestJSON('/api/generate', preferences);
 }
 
-export function scoreName(fullName) {
-  return requestJSON('/api/score', { fullName });
+export function scoreName(fullName, birthday = null) {
+  return requestJSON('/api/score', { fullName, birthday });
 }

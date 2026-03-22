@@ -304,8 +304,12 @@ function buildGeneratePrompt(preferences) {
   return { systemPrompt, userPrompt: prompt };
 }
 
-function buildScorePrompt(fullName) {
-  const prompt = `名字：${fullName}。请详细打分。`;
+function buildScorePrompt(fullName, birthday = null) {
+  const birthdayContext = birthday ? `\n宝宝生日：${birthday}。` : '';
+  const prompt = `名字：${fullName}。${birthdayContext}请详细打分。`;
+
+  const culturalNoteInstruction = `
+6. cultural_note（可选）：用 2-3 句话点评这个名字的传统文化视角。语调要求：先给信息再给观点，不说大吉大凶，敢说不重要，指出真正重要的事，承认体系局限。像一个读过古书但不迷信的朋友在聊天。`;
 
   const systemPrompt = `5 维评分（每项 0-20，总分 100）：
 1. 音韵搭配：声调组合、声母搭配、朗读节奏 (18-20=极舒适, <14=拗口)
@@ -313,6 +317,7 @@ function buildScorePrompt(fullName) {
 3. 大雅大俗：判路线(大雅或大俗)，然后依据该路线特点打分(大雅留白大、大俗生命力强)
 4. 民国风骨：温润克制、不造作
 5. 实用性：含生僻字≤10，含多音字≤12，检查谐音/重名
+${culturalNoteInstruction}
 
 要求：temperature=0，禁止泛泛而谈。
 输出：严格的 JSON 对象格式，没有任何 Markdown 包裹，字段如下：
@@ -327,7 +332,8 @@ function buildScorePrompt(fullName) {
     "classic": {"score": 18, "analysis": "分析"},
     "practical": {"score": 18, "analysis": "分析"}
   },
-  "overall_comment": "总体评价"
+  "overall_comment": "总体评价",
+  "cultural_note": "传统文化点评（2-3句话，可选）"
 }`;
 
   return { systemPrompt, userPrompt: prompt };
@@ -804,7 +810,7 @@ async function handleScore(request, env, fetchImpl) {
     return jsonResponse({ error: '请输入完整名字后再打分。' }, { status: 400 });
   }
 
-  const result = await fetchOpenRouter(buildScorePrompt(payload.fullName.trim()), env, fetchImpl);
+  const result = await fetchOpenRouter(buildScorePrompt(payload.fullName.trim(), payload.birthday || null), env, fetchImpl);
 
   await safeInsertEventLog(env, {
     sessionId: getSessionId(request, payload),

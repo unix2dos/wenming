@@ -1,0 +1,235 @@
+/* 传统文化视角板块样式 */
+
+.cultural-board {
+  background: #FAF7F2; /* 淡暖灰，比 yuebai 稍暖 */
+  border-radius: 12px;
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+}
+
+.cultural-board__title {
+  font-family: var(--font-title);
+  font-size: 16px;
+  color: var(--color-dai);
+  margin: 0 0 var(--spacing-md);
+  font-weight: 600;
+}
+
+/* 五行区域 */
+.cultural-wuxing {
+  margin-bottom: var(--spacing-md);
+}
+
+.cultural-wuxing__chars {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-xs);
+}
+
+.cultural-wuxing__char {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--color-jingbai);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--color-dai);
+}
+
+.cultural-wuxing__char-name {
+  font-weight: 500;
+}
+
+.cultural-wuxing__char-element {
+  color: var(--color-yanhui);
+  font-size: 12px;
+}
+
+.cultural-wuxing__char--unknown .cultural-wuxing__char-element {
+  color: var(--color-zheshi);
+  font-style: italic;
+}
+
+.cultural-wuxing__relation {
+  font-size: 13px;
+  color: var(--color-yanhui);
+  margin-top: var(--spacing-xs);
+}
+
+/* 天干地支 + 生肖 */
+.cultural-lunar {
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: var(--color-jingbai);
+  border-radius: var(--radius-sm);
+}
+
+.cultural-lunar__text {
+  font-size: 14px;
+  color: var(--color-dai);
+  margin: 0;
+}
+
+.cultural-lunar__label {
+  font-size: 12px;
+  color: var(--color-yanhui);
+}
+
+/* 生肖宜忌 */
+.cultural-zodiac {
+  margin-bottom: var(--spacing-md);
+}
+
+.cultural-zodiac__note {
+  font-size: 13px;
+  color: var(--color-yanhui);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* 重名率 */
+.cultural-frequency {
+  margin-bottom: var(--spacing-md);
+}
+
+.cultural-frequency__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-xs);
+}
+
+.cultural-frequency__label {
+  font-size: 13px;
+  color: var(--color-yanhui);
+}
+
+.cultural-frequency__tier {
+  font-size: 13px;
+  color: var(--color-dai);
+  font-weight: 500;
+}
+
+.cultural-frequency__bar {
+  height: 6px;
+  background: #EDE8E1;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.cultural-frequency__bar-fill {
+  height: 100%;
+  background: var(--color-ouhe);
+  border-radius: 3px;
+  transition: width var(--transition-normal);
+}
+
+.cultural-frequency__estimate {
+  font-size: 12px;
+  color: var(--color-yanhui);
+  margin-top: 4px;
+}
+
+.cultural-frequency__nodata {
+  font-size: 13px;
+  color: var(--color-yanhui);
+  font-style: italic;
+}
+
+/* 谐音警告 */
+.cultural-homophone {
+  margin-bottom: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: #FFF8F0;
+  border-left: 3px solid var(--color-zheshi);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.cultural-homophone__text {
+  font-size: 13px;
+  color: var(--color-dai);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* 问名的看法 (LLM 评语) */
+.cultural-note {
+  margin-top: var(--spacing-md);
+  border-top: 1px solid #EDE8E1;
+  padding-top: var(--spacing-md);
+}
+
+.cultural-note__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-zhuqing);
+  transition: color var(--transition-fast);
+}
+
+.cultural-note__toggle:hover {
+  color: var(--color-dai);
+}
+
+.cultural-note__toggle-icon {
+  transition: transform var(--transition-fast);
+  font-size: 10px;
+}
+
+.cultural-note__toggle-icon--expanded {
+  transform: rotate(90deg);
+}
+
+.cultural-note__content {
+  font-size: 14px;
+  color: var(--color-dai);
+  line-height: 1.8;
+  margin-top: var(--spacing-sm);
+  padding-left: var(--spacing-sm);
+}
+
+/* 无生日引导 */
+.cultural-birthday-hint {
+  font-size: 13px;
+  color: var(--color-yanhui);
+  font-style: italic;
+  margin-bottom: var(--spacing-sm);
+}
+
+/* 生日输入旁的天干地支即时反馈 */
+.birthday-feedback {
+  font-size: 13px;
+  color: var(--color-zhuqing);
+  margin-top: 4px;
+  min-height: 18px;
+}
+
+/* 折叠区 — 用于 modal 中的紧凑展示 */
+.cultural-board--collapsed .cultural-zodiac,
+.cultural-board--collapsed .cultural-note {
+  display: none;
+}
+
+.cultural-board__expand {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: var(--spacing-xs) 0;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--color-zhuqing);
+}
+
+.cultural-board__expand:hover {
+  color: var(--color-dai);
+}

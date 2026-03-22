@@ -1,12 +1,15 @@
 import '../styles/scoring.css';
+import '../styles/cultural.css';
 import { scoreName } from '../api/openrouter.js';
 import { renderLoading } from '../components/loading.js';
 import { normalizeRadarDimensions, renderRadarChart } from '../components/radar-chart.js';
+import { renderCulturalBoard, bindCulturalBoardEvents } from '../components/cultural-board.js';
 import { saveName, removeName, isNameSaved, getSavedNames } from '../utils/storage.js';
 import { exportElementAsPDF } from '../utils/export.js';
 import { formatApiErrorMessage } from '../utils/api-error.js';
 import { setPendingCompareNames } from '../utils/compare-session.js';
 import { renderBackAction, resolveBackTarget } from '../utils/navigation.js';
+import { analyzeCultural, getSavedBirthday, saveBirthday, getInstantTianganDizhi } from '../utils/cultural.js';
 import {
   COMPARE_REPORT_PICK_CANDIDATES_LABEL,
   COMPARE_REPORT_POINTS,
@@ -61,6 +64,11 @@ export function renderScoring(container) {
             <h2>看看名字好不好</h2>
             <form id="score-form" class="input-group">
               <input type="text" id="name-input" class="input-underline" placeholder="输入名字 (例如: 林半亩)" required maxlength="4" autocomplete="off" />
+              <div class="form-group" style="margin-top: var(--spacing-md);">
+                <label for="score-birthday" style="font-size:13px; color:var(--color-yanhui);">宝宝生日 <span class="optional">(选填，用于生肖分析)</span></label>
+                <input type="date" id="score-birthday" class="input-underline" value="${getSavedBirthday() || ''}" />
+                <div class="birthday-feedback" id="score-birthday-feedback">${getSavedBirthday() ? (getInstantTianganDizhi(getSavedBirthday()) || '') : ''}</div>
+              </div>
               <button type="submit" class="btn">推敲打分</button>
             </form>
             ${state.error ? `<div class="error-message">${state.error}</div>` : ''}
@@ -68,18 +76,31 @@ export function renderScoring(container) {
         </div>
       `;
 
+      // Birthday instant feedback
+      const birthdayInput = document.getElementById('score-birthday');
+      const birthdayFeedback = document.getElementById('score-birthday-feedback');
+      birthdayInput.addEventListener('change', () => {
+        const val = birthdayInput.value;
+        saveBirthday(val);
+        birthdayFeedback.textContent = val ? (getInstantTianganDizhi(val) || '') : '';
+      });
+
       document.getElementById('score-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const name = document.getElementById('name-input').value.trim();
         if (!name) return;
-        
+
+        const birthday = document.getElementById('score-birthday').value || null;
+        if (birthday) saveBirthday(birthday);
+
         state.step = 'loading';
         state.error = null;
+        state.birthday = birthday;
         render();
 
         try {
-          const result = await scoreName(name);
-          state.data = { full_name: name, ...result }; // ensure full_name key matches storage logic
+          const result = await scoreName(name, birthday);
+          state.data = { full_name: name, ...result };
           state.step = 'result';
         } catch (err) {
           state.error = formatApiErrorMessage(err, '打分');
@@ -149,6 +170,12 @@ export function renderScoring(container) {
                 ${renderDimItem('实用', dimensions.practical)}
               </div>
 
+              ${(() => {
+                const surname = d.full_name.charAt(0); // 简化：取第一个字为姓
+                const cultural = analyzeCultural(d.full_name, surname, state.birthday || getSavedBirthday());
+                return renderCulturalBoard(cultural, { culturalNote: d.cultural_note || null });
+              })()}
+
               ${canCompare ? `
                 <section class="score-compare-offer">
                   <div class="score-compare-copy">
@@ -188,6 +215,9 @@ export function renderScoring(container) {
       setTimeout(() => {
         renderRadarChart('radar-canvas', dimensions);
       }, 50);
+
+      // Bind cultural board interactions
+      bindCulturalBoardEvents(container);
 
       document.getElementById('score-back-btn')?.addEventListener('click', backTarget.onBack);
 
