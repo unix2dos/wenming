@@ -170,6 +170,10 @@ function renderCulturalNote(note) {
  * @param {HTMLElement} container - 包含 .cultural-board 的容器
  */
 export function bindCulturalBoardEvents(container) {
+  if (!container || typeof container.querySelector !== 'function') {
+    return;
+  }
+
   // 展开/折叠整个板块（modal 用）
   container.querySelector('[data-action="expand-cultural"]')?.addEventListener('click', (e) => {
     const board = e.target.closest('.cultural-board');

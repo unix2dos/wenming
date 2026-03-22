@@ -87,7 +87,7 @@ export function renderScoring(container) {
         render();
 
         try {
-          const result = await scoreName(name, birthday);
+          const result = await scoreName(name, state.birthday);
           state.data = { full_name: name, ...result };
           state.step = 'result';
         } catch (err) {
